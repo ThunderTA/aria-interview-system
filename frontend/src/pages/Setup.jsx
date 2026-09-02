@@ -4,7 +4,7 @@ import { uploadResume } from "../api/resume";
 import AppHeader from "../components/AppHeader";
 import Notice from "../components/Notice";
 import RoleCard from "../components/RoleCard";
-import { ROLES } from "../constants/roles";
+import { ROLES, getRole } from "../constants/roles";
 import "./Setup.css";
 
 export default function Setup() {
@@ -13,6 +13,8 @@ export default function Setup() {
   const [selectedRole, setSelectedRole] = useState(ROLES[0].id);
   const [fileName, setFileName] = useState(null);
   const [uploadState, setUploadState] = useState("idle");
+  const [parsed, setParsed] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -20,12 +22,20 @@ export default function Setup() {
 
     setFileName(file.name);
     setUploadState("uploading");
+    setUploadError(null);
     try {
-      await uploadResume(file);
+      const resume = await uploadResume(file);
+      setParsed(resume);
       setUploadState("done");
-    } catch {
-      // POST /resume/upload is still a 501 stub — expected, not an error worth alarming about.
-      setUploadState("unavailable");
+      // Pre-select the role the resume points at; the candidate can still override.
+      if (ROLES.some((role) => role.id === resume.inferred_role)) {
+        setSelectedRole(resume.inferred_role);
+      }
+    } catch (err) {
+      setUploadState("error");
+      setUploadError(
+        err.response?.data?.detail || "Could not read that file. Try a text-based PDF or .docx."
+      );
     }
   };
 
@@ -66,11 +76,27 @@ export default function Setup() {
           </button>
         </div>
 
-        {uploadState === "unavailable" && (
-          <Notice title="Not wired up yet.">
-            Resume parsing arrives with the LLM milestone, so this file wasn't processed. Pick
-            your role below to continue.
-          </Notice>
+        {uploadState === "error" && <Notice title="Couldn't read that file.">{uploadError}</Notice>}
+
+        {uploadState === "done" && parsed && (
+          <div className="resume-parsed">
+            <div className="resume-parsed__summary">
+              <span className="resume-parsed__chip resume-parsed__chip--accent">
+                {getRole(parsed.inferred_role).short}
+              </span>
+              <span className="resume-parsed__level">{parsed.inferred_level} level</span>
+              <span className="resume-parsed__count">
+                {parsed.parsed_skills.length} skills detected
+              </span>
+            </div>
+            <div className="resume-parsed__skills">
+              {parsed.parsed_skills.map((skill) => (
+                <span key={skill.name} className="resume-parsed__chip">
+                  {skill.name}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
       </section>
 

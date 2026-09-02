@@ -9,3 +9,5 @@ bcrypt==4.0.1
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.20
 websockets==14.1
+pypdf==5.1.0
+python-docx==1.1.2
