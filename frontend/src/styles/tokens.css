@@ -1,0 +1,63 @@
+:root {
+  /* Surfaces */
+  --bg: #0a0b0f;
+  --bg-elevated: #101218;
+  --surface: #15171e;
+  --surface-hover: #1b1e27;
+  --border: #262933;
+  --border-strong: #363a47;
+
+  /* Text */
+  --text-primary: #f2f3f5;
+  --text-secondary: #9aa0ac;
+  --text-tertiary: #676d7a;
+
+  /* Brand accents — amber "spotlight" + teal "signal", not the default AI-purple */
+  --accent: #ffb020;
+  --accent-strong: #ffc659;
+  --accent-ink: #1a1200;
+  --signal: #4de5c0;
+  --signal-strong: #7cf0d6;
+  --danger: #ff5c5c;
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, #ffb020 0%, #ff6b4a 100%);
+  --gradient-glow: radial-gradient(circle at 30% 20%, rgba(255, 176, 32, 0.25), transparent 55%),
+    radial-gradient(circle at 75% 65%, rgba(77, 229, 192, 0.18), transparent 50%);
+
+  /* Typography */
+  --font-heading: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  /* Spacing (4/8pt rhythm) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
