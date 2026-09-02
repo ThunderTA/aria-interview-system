@@ -18,6 +18,7 @@ class SessionStatus(str, Enum):
 class QuestionAnswer(BaseModel):
     question_id: str
     text: str
+    topic: str | None = None
     difficulty_level: int
     order_index: int
     transcript: str | None = None
@@ -30,10 +31,21 @@ class QuestionAnswer(BaseModel):
     expression_score: float | None = None
     posture_score: float | None = None
     feedback_text: str | None = None
+    # Rubric breakdown behind content_score (each 0-10), from the LLM judge.
+    rubric: dict[str, int] | None = None
+    strengths: list[str] = Field(default_factory=list)
+    improvements: list[str] = Field(default_factory=list)
+    answered_at: datetime | None = None
 
 
 class SessionCreate(BaseModel):
     role: SessionRole
+
+
+class AnswerSubmit(BaseModel):
+    """A transcribed answer to the session's current (last) question."""
+
+    transcript: str
 
 
 class SessionOut(BaseModel):

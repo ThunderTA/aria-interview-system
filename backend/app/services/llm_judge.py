@@ -1,14 +1,169 @@
-# TODO: LLM-based question generation + answer scoring.
-# - generate_question(): role, difficulty_level, resume-derived skills ->
-#   next interview question text.
-# - score_answer(): question + transcript -> structured rubric scores
-#   (content_score fields) + feedback_text, via a single LLM-as-judge call.
-# See docs/architecture.md ("Multimodal Assessment") for the rubric fields.
+"""Interview question generation and LLM-as-judge answer scoring.
+
+Two responsibilities, both driven by the local LLM (see llm_client.py):
+
+1. `generate_question` — produce the next question for a role at a given
+   difficulty, optionally grounded in the candidate's resume skills.
+2. `score_answer` — grade a transcribed answer against a fixed rubric and
+   return both the numeric scores and the feedback text shown to the
+   candidate. One call does both, since the feedback is needed anyway.
+
+Difficulty is an integer 1-5; see rl_engine.py for how it gets chosen.
+"""
+
+from app.services.llm_client import chat_json
+
+DIFFICULTY_LABELS = {
+    1: "very easy warm-up",
+    2: "easy",
+    3: "moderate",
+    4: "challenging",
+    5: "very challenging, senior-level",
+}
+
+ROLE_BRIEFS = {
+    "SDE": (
+        "a software development engineer interview covering data structures, algorithms, "
+        "system design, language fundamentals, databases, and practical engineering trade-offs"
+    ),
+    "HR": (
+        "an HR and behavioural interview covering motivation, teamwork, conflict handling, "
+        "strengths and weaknesses, career goals, and the story behind the candidate's resume"
+    ),
+}
+
+QUESTION_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "question": {"type": "string"},
+        "topic": {"type": "string"},
+    },
+    "required": ["question", "topic"],
+}
+
+SCORE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "correctness": {"type": "integer", "minimum": 0, "maximum": 10},
+        "depth": {"type": "integer", "minimum": 0, "maximum": 10},
+        "relevance": {"type": "integer", "minimum": 0, "maximum": 10},
+        "clarity": {"type": "integer", "minimum": 0, "maximum": 10},
+        "feedback": {"type": "string"},
+        "strengths": {"type": "array", "items": {"type": "string"}},
+        "improvements": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": [
+        "correctness",
+        "depth",
+        "relevance",
+        "clarity",
+        "feedback",
+        "strengths",
+        "improvements",
+    ],
+}
+
+RUBRIC_WEIGHTS = {"correctness": 0.4, "depth": 0.25, "relevance": 0.2, "clarity": 0.15}
 
 
-async def generate_question(role: str, difficulty_level: int, skills: list[str]) -> str:
-    raise NotImplementedError
+async def generate_question(
+    role: str,
+    difficulty_level: int,
+    skills: list[str] | None = None,
+    asked_questions: list[str] | None = None,
+) -> dict:
+    """Generate the next interview question. Returns {question, topic}."""
+    brief = ROLE_BRIEFS.get(role, ROLE_BRIEFS["SDE"])
+    label = DIFFICULTY_LABELS.get(difficulty_level, DIFFICULTY_LABELS[3])
+
+    system_prompt = (
+        "You are an experienced technical interviewer conducting "
+        f"{brief}. You ask one focused question at a time. Questions must be "
+        "answerable out loud in 60-90 seconds, with no code writing required. "
+        "Never include the answer, hints, or commentary."
+    )
+
+    parts = [f"Ask one {label} interview question."]
+    if skills:
+        parts.append(
+            "Ground it in the candidate's background where it fits naturally. "
+            f"Their skills: {', '.join(skills[:15])}."
+        )
+    if asked_questions:
+        already = "\n".join(f"- {q}" for q in asked_questions[-8:])
+        parts.append(f"Do not repeat or closely paraphrase any of these:\n{already}")
+    parts.append('Respond as JSON: {"question": "...", "topic": "short topic label"}')
+
+    result = await chat_json(system_prompt, "\n\n".join(parts), QUESTION_SCHEMA, temperature=0.8)
+    return {
+        "question": result["question"].strip(),
+        "topic": result["topic"].strip(),
+    }
 
 
-async def score_answer(question: str, transcript: str) -> dict:
-    raise NotImplementedError
+async def score_answer(question: str, transcript: str, role: str = "SDE") -> dict:
+    """Grade a spoken answer against the rubric.
+
+    Returns the four rubric scores (0-10), a weighted `content_score` (0-100),
+    the feedback paragraph, and strengths/improvements lists.
+    """
+    if not transcript.strip():
+        return _empty_answer_result()
+
+    brief = ROLE_BRIEFS.get(role, ROLE_BRIEFS["SDE"])
+    system_prompt = (
+        f"You are grading a candidate's spoken answer in {brief}. "
+        "The text is an automatic transcript of speech, so ignore punctuation, "
+        "filler words and minor transcription errors — grade the substance only. "
+        "Be fair but honest: do not inflate scores for vague or incorrect answers."
+    )
+
+    user_prompt = f"""Question asked:
+{question}
+
+Candidate's transcribed answer:
+{transcript}
+
+Score each criterion from 0 to 10:
+- correctness: is the substance factually right?
+- depth: does it go beyond a surface-level response?
+- relevance: does it actually answer the question asked?
+- clarity: is the explanation well structured and easy to follow?
+
+Then write `feedback` as 2-3 sentences addressed directly to the candidate
+("you"), naming what specifically to fix. Give 1-3 `strengths` and 1-3
+`improvements` as short phrases."""
+
+    result = await chat_json(system_prompt, user_prompt, SCORE_SCHEMA, temperature=0.2)
+
+    rubric = {k: _clamp(result.get(k, 0)) for k in RUBRIC_WEIGHTS}
+    content_score = round(sum(rubric[k] * w for k, w in RUBRIC_WEIGHTS.items()) * 10, 1)
+
+    return {
+        **rubric,
+        "content_score": content_score,
+        "feedback": result.get("feedback", "").strip(),
+        "strengths": [s.strip() for s in result.get("strengths", []) if s.strip()][:3],
+        "improvements": [s.strip() for s in result.get("improvements", []) if s.strip()][:3],
+    }
+
+
+def _clamp(value) -> int:
+    try:
+        return max(0, min(10, int(value)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _empty_answer_result() -> dict:
+    """Scoring a silent/empty answer needs no model call."""
+    return {
+        "correctness": 0,
+        "depth": 0,
+        "relevance": 0,
+        "clarity": 0,
+        "content_score": 0.0,
+        "feedback": "No answer was recorded for this question.",
+        "strengths": [],
+        "improvements": ["Attempt an answer, even a partial one, rather than staying silent."],
+    }

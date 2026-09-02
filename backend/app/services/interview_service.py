@@ -1,0 +1,210 @@
+"""Orchestrates a live interview session.
+
+Ties together the three engines so the router stays thin:
+  llm_judge   -> generates questions, scores answers
+  rl_engine   -> picks the next question's difficulty from recent scores
+  MongoDB     -> stores the session document and the shared Q-table
+
+The Q-table is shared across users rather than stored per-user. Adaptation to
+an individual happens through the RL *state* (their recent scores), while the
+table itself learns the general policy ("high band at level 3 -> go harder").
+A shared table reaches useful values after a handful of sessions; per-user
+tables would each see too few samples to ever learn anything.
+"""
+
+import logging
+from datetime import datetime, timezone
+
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
+from app.services import llm_judge, rl_engine
+
+logger = logging.getLogger(__name__)
+
+QUESTIONS_PER_SESSION = 5
+Q_TABLE_ID = "shared_policy"
+
+# Where a session starts, by the seniority inferred from the resume.
+STARTING_DIFFICULTY = {"intern": 2, "junior": 2, "mid": 3, "senior": 4}
+DEFAULT_DIFFICULTY = 3
+
+
+async def load_q_table(db: AsyncIOMotorDatabase) -> dict:
+    doc = await db.rl_policy.find_one({"_id": Q_TABLE_ID})
+    return (doc or {}).get("q_table", {})
+
+
+async def save_q_table(db: AsyncIOMotorDatabase, q_table: dict) -> None:
+    await db.rl_policy.update_one(
+        {"_id": Q_TABLE_ID},
+        {"$set": {"q_table": q_table, "updated_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
+
+
+async def get_candidate_context(db: AsyncIOMotorDatabase, user_id: str) -> tuple[list[str], int]:
+    """Resume-derived skills and starting difficulty. Falls back cleanly if no resume."""
+    resume = await db.resumes.find_one({"user_id": user_id})
+    if not resume:
+        return [], DEFAULT_DIFFICULTY
+
+    skills = [s["name"] for s in resume.get("parsed_skills", [])]
+    difficulty = STARTING_DIFFICULTY.get(resume.get("inferred_level"), DEFAULT_DIFFICULTY)
+    return skills, difficulty
+
+
+def answered_scores(questions: list[dict]) -> list[float]:
+    """Content scores of the questions answered so far, in order."""
+    return [q["content_score"] for q in questions if q.get("content_score") is not None]
+
+
+async def build_next_question(
+    db: AsyncIOMotorDatabase,
+    session: dict,
+    user_id: str,
+) -> dict:
+    """Generate the next question at the difficulty the RL policy recommends."""
+    questions = session.get("questions", [])
+    skills, starting_difficulty = await get_candidate_context(db, user_id)
+
+    if questions:
+        q_table = await load_q_table(db)
+        difficulty = rl_engine.select_next_difficulty(
+            answered_scores(questions), questions[-1]["difficulty_level"], q_table
+        )
+    else:
+        difficulty = starting_difficulty
+
+    generated = await llm_judge.generate_question(
+        role=session["role"],
+        difficulty_level=difficulty,
+        skills=skills,
+        asked_questions=[q["text"] for q in questions],
+    )
+
+    return {
+        "question_id": f"q{len(questions) + 1}",
+        "text": generated["question"],
+        "topic": generated["topic"],
+        "difficulty_level": difficulty,
+        "order_index": len(questions),
+        "strengths": [],
+        "improvements": [],
+    }
+
+
+async def score_and_advance(
+    db: AsyncIOMotorDatabase,
+    session: dict,
+    transcript: str,
+) -> dict:
+    """Score the current question's answer and learn from the outcome.
+
+    Returns the scored question dict. Does not persist — the caller writes the
+    updated session so the whole turn is one database round trip.
+    """
+    questions = session["questions"]
+    current = questions[-1]
+
+    scored = await llm_judge.score_answer(
+        question=current["text"], transcript=transcript, role=session["role"]
+    )
+
+    prior_scores = answered_scores(questions)
+    difficulty = current["difficulty_level"]
+    # The action the policy took was the step from the previous question's
+    # difficulty to this one's. The first question follows no action.
+    previous_difficulty = questions[-2]["difficulty_level"] if len(questions) >= 2 else None
+
+    current.update(
+        {
+            "transcript": transcript,
+            "content_score": scored["content_score"],
+            "rubric": {k: scored[k] for k in ("correctness", "depth", "relevance", "clarity")},
+            "feedback_text": scored["feedback"],
+            "strengths": scored["strengths"],
+            "improvements": scored["improvements"],
+            "answered_at": datetime.now(timezone.utc),
+        }
+    )
+
+    if previous_difficulty is not None:
+        await _learn_from_turn(
+            db, prior_scores, previous_difficulty, difficulty, scored["content_score"]
+        )
+    return current
+
+
+async def _learn_from_turn(
+    db: AsyncIOMotorDatabase,
+    prior_scores: list[float],
+    previous_difficulty: int,
+    difficulty: int,
+    score: float,
+) -> None:
+    """Apply one Q-learning update for the turn that just completed.
+
+    The transition being learned is: from the state the policy saw when it
+    chose this question (scores before it, previous difficulty), it took the
+    action `difficulty - previous_difficulty` and earned a reward based on how
+    well the candidate then scored.
+    """
+    try:
+        prior_before_action = prior_scores[:-1] if prior_scores else []
+        state = rl_engine.state_key(prior_before_action, previous_difficulty)
+        action = rl_engine.clamp_difficulty(difficulty) - rl_engine.clamp_difficulty(
+            previous_difficulty
+        )
+        next_state = rl_engine.state_key(prior_scores + [score], difficulty)
+        reward = rl_engine.compute_reward(score, difficulty)
+
+        q_table = await load_q_table(db)
+        rl_engine.update_q_table(q_table, state, action, reward, next_state)
+        await save_q_table(db, q_table)
+    except Exception:
+        # Learning is best-effort: a failed policy update must never break the
+        # interview the candidate is currently sitting.
+        logger.exception("Q-table update failed; continuing without learning from this turn")
+
+
+def compute_aggregates(questions: list[dict]) -> dict:
+    """Session-level averages across the answered questions."""
+    scores = answered_scores(questions)
+    if not scores:
+        return {
+            "overall_score": None,
+            "content_score_avg": None,
+            "delivery_score_avg": None,
+            "visual_score_avg": None,
+        }
+
+    content_avg = round(sum(scores) / len(scores), 1)
+    delivery = [q["delivery_score"] for q in questions if q.get("delivery_score") is not None]
+    visual = [q["gaze_score"] for q in questions if q.get("gaze_score") is not None]
+
+    delivery_avg = round(sum(delivery) / len(delivery), 1) if delivery else None
+    visual_avg = round(sum(visual) / len(visual), 1) if visual else None
+
+    # Until speech and CV analysis land, content is the only signal, so the
+    # overall score is content alone rather than a weighted blend of nulls.
+    present = [v for v in (content_avg, delivery_avg, visual_avg) if v is not None]
+    return {
+        "overall_score": round(sum(present) / len(present), 1),
+        "content_score_avg": content_avg,
+        "delivery_score_avg": delivery_avg,
+        "visual_score_avg": visual_avg,
+    }
+
+
+def collect_feedback(questions: list[dict]) -> dict[str, list[str]]:
+    """Roll per-answer strengths/improvements up to the session level, de-duplicated."""
+    strengths: list[str] = []
+    improvements: list[str] = []
+    for q in questions:
+        strengths.extend(q.get("strengths", []))
+        improvements.extend(q.get("improvements", []))
+
+    return {
+        "strengths": list(dict.fromkeys(strengths))[:5],
+        "improvements": list(dict.fromkeys(improvements))[:5],
+    }
