@@ -98,20 +98,6 @@
   gap: var(--space-3);
 }
 
-.bento-cta__preview {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--signal);
-  text-decoration: none;
-  white-space: nowrap;
-  transition: color var(--duration-fast) var(--ease-out);
-}
-
-.bento-cta__preview:hover {
-  color: var(--signal-strong);
-  text-decoration: underline;
-}
-
 .bento-cta__button {
   position: relative;
   padding: 0.75rem 1.25rem;
@@ -120,17 +106,8 @@
   background: var(--gradient-brand);
   color: var(--accent-ink);
   font-weight: 600;
-  cursor: not-allowed;
-  opacity: 0.55;
+  cursor: pointer;
   white-space: nowrap;
-}
-
-.bento-cta__soon {
-  display: block;
-  font-size: 0.68rem;
-  font-weight: 500;
-  opacity: 0.8;
-  margin-top: 2px;
 }
 
 .bento-tile--stat {
@@ -230,4 +207,106 @@
   .bento-tile--progress {
     grid-column: span 1;
   }
+}
+
+/* Session history list */
+.session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.session-list__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.session-list__row:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.session-list__score {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--signal);
+  font-variant-numeric: tabular-nums;
+}
+
+.session-list__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.session-list__role {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.session-list__meta {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.session-list__chevron {
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+}
+
+/* Score trend */
+.trend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: calc(100% - 2rem);
+  justify-content: flex-end;
+}
+
+.trend__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 110px;
+}
+
+.trend__bar {
+  flex: 1;
+  /* Capped so a handful of sessions render as bars, not fat blobs. */
+  max-width: 28px;
+  min-width: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--gradient-brand);
+  opacity: 0.85;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.trend__bar:hover {
+  opacity: 1;
 }

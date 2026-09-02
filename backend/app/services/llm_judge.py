@@ -41,6 +41,10 @@ QUESTION_SCHEMA = {
     "required": ["question", "topic"],
 }
 
+# Kept deliberately lean. Generation is output-token-bound on a local model
+# (~0.27s/token on an M4), so every extra field is felt directly as latency by
+# a candidate waiting mid-interview. Session-level strengths and improvements
+# are produced once by summarise_session() instead of on every answer.
 SCORE_SCHEMA = {
     "type": "object",
     "properties": {
@@ -49,18 +53,17 @@ SCORE_SCHEMA = {
         "relevance": {"type": "integer", "minimum": 0, "maximum": 10},
         "clarity": {"type": "integer", "minimum": 0, "maximum": 10},
         "feedback": {"type": "string"},
+    },
+    "required": ["correctness", "depth", "relevance", "clarity", "feedback"],
+}
+
+SUMMARY_SCHEMA = {
+    "type": "object",
+    "properties": {
         "strengths": {"type": "array", "items": {"type": "string"}},
         "improvements": {"type": "array", "items": {"type": "string"}},
     },
-    "required": [
-        "correctness",
-        "depth",
-        "relevance",
-        "clarity",
-        "feedback",
-        "strengths",
-        "improvements",
-    ],
+    "required": ["strengths", "improvements"],
 }
 
 RUBRIC_WEIGHTS = {"correctness": 0.4, "depth": 0.25, "relevance": 0.2, "clarity": 0.15}
@@ -94,7 +97,9 @@ async def generate_question(
         parts.append(f"Do not repeat or closely paraphrase any of these:\n{already}")
     parts.append('Respond as JSON: {"question": "...", "topic": "short topic label"}')
 
-    result = await chat_json(system_prompt, "\n\n".join(parts), QUESTION_SCHEMA, temperature=0.8)
+    result = await chat_json(
+        system_prompt, "\n\n".join(parts), QUESTION_SCHEMA, temperature=0.8, max_tokens=120
+    )
     return {
         "question": result["question"].strip(),
         "topic": result["topic"].strip(),
@@ -131,10 +136,11 @@ Score each criterion from 0 to 10:
 - clarity: is the explanation well structured and easy to follow?
 
 Then write `feedback` as 2-3 sentences addressed directly to the candidate
-("you"), naming what specifically to fix. Give 1-3 `strengths` and 1-3
-`improvements` as short phrases."""
+("you"), naming what specifically to fix."""
 
-    result = await chat_json(system_prompt, user_prompt, SCORE_SCHEMA, temperature=0.2)
+    result = await chat_json(
+        system_prompt, user_prompt, SCORE_SCHEMA, temperature=0.2, max_tokens=200
+    )
 
     rubric = {k: _clamp(result.get(k, 0)) for k in RUBRIC_WEIGHTS}
     content_score = round(sum(rubric[k] * w for k, w in RUBRIC_WEIGHTS.items()) * 10, 1)
@@ -143,8 +149,43 @@ Then write `feedback` as 2-3 sentences addressed directly to the candidate
         **rubric,
         "content_score": content_score,
         "feedback": result.get("feedback", "").strip(),
-        "strengths": [s.strip() for s in result.get("strengths", []) if s.strip()][:3],
-        "improvements": [s.strip() for s in result.get("improvements", []) if s.strip()][:3],
+    }
+
+
+async def summarise_session(role: str, answered: list[dict]) -> dict:
+    """Produce session-level strengths and improvements once, at the end.
+
+    Takes the per-answer feedback already generated during the interview, so
+    this is one short call rather than extra tokens on every answer.
+    """
+    if not answered:
+        return {"strengths": [], "improvements": []}
+
+    lines = []
+    for i, q in enumerate(answered, 1):
+        lines.append(
+            f"{i}. [{q.get('topic', 'question')}, scored {q.get('content_score')}/100] "
+            f"{q.get('feedback_text', '')}"
+        )
+
+    system_prompt = (
+        f"You are summarising a candidate's performance across {ROLE_BRIEFS.get(role, ROLE_BRIEFS['SDE'])}. "
+        "Write for the candidate, in the second person."
+    )
+    user_prompt = (
+        "Per-question feedback from the session:\n\n"
+        + "\n".join(lines)
+        + "\n\nIdentify the recurring themes. Give 2-4 `strengths` and 2-4 `improvements`, "
+        "each a short phrase (under 12 words). Describe patterns across the session, not "
+        "one-off remarks about a single answer."
+    )
+
+    result = await chat_json(
+        system_prompt, user_prompt, SUMMARY_SCHEMA, temperature=0.3, max_tokens=260
+    )
+    return {
+        "strengths": [s.strip() for s in result.get("strengths", []) if s.strip()][:4],
+        "improvements": [s.strip() for s in result.get("improvements", []) if s.strip()][:4],
     }
 
 
@@ -164,6 +205,4 @@ def _empty_answer_result() -> dict:
         "clarity": 0,
         "content_score": 0.0,
         "feedback": "No answer was recorded for this question.",
-        "strengths": [],
-        "improvements": ["Attempt an answer, even a partial one, rather than staying silent."],
     }

@@ -118,7 +118,12 @@ async def submit_answer(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    """Score the answer to the current question, then queue the next one.
+    """Score the answer to the current question.
+
+    Deliberately does *not* generate the next question: on a local model that
+    would roughly double the wait before the candidate sees any feedback. The
+    client calls POST /next once it has the score, so reading the feedback
+    overlaps with generating what comes next.
 
     Until the WebSocket + Whisper path lands, the client sends an already
     transcribed answer here; the scoring and adaptation logic is identical
@@ -133,18 +138,41 @@ async def submit_answer(
 
     try:
         await interview_service.score_and_advance(db, session, payload.transcript)
-
-        # Queue the next question unless the session has run its length.
-        if len(session["questions"]) < interview_service.QUESTIONS_PER_SESSION:
-            session["questions"].append(
-                await interview_service.build_next_question(db, session, user_id)
-            )
     except LLMUnavailableError as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
 
     await db.sessions.update_one(
         {"_id": session["_id"]}, {"$set": {"questions": session["questions"]}}
     )
+    return _to_out(session)
+
+
+@router.post("/{session_id}/next", response_model=SessionOut)
+async def next_question(
+    session_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """Generate the next question at the difficulty the RL policy recommends.
+
+    A no-op if the current question is still unanswered or the session has run
+    its full length, so the client can call it without tracking that state.
+    """
+    user_id = str(current_user["_id"])
+    session = await _get_owned_session(db, session_id, user_id, must_be_active=True)
+    questions = session["questions"]
+
+    at_full_length = len(questions) >= interview_service.QUESTIONS_PER_SESSION
+    awaiting_answer = questions and questions[-1].get("content_score") is None
+    if at_full_length or awaiting_answer:
+        return _to_out(session)
+
+    try:
+        questions.append(await interview_service.build_next_question(db, session, user_id))
+    except LLMUnavailableError as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+
+    await db.sessions.update_one({"_id": session["_id"]}, {"$set": {"questions": questions}})
     return _to_out(session)
 
 
@@ -164,6 +192,7 @@ async def end_session(
 
     updates = {
         **interview_service.compute_aggregates(questions),
+        **await interview_service.summarise(session["role"], questions),
         "questions": questions,
         "status": SessionStatus.completed.value,
         "ended_at": datetime.now(timezone.utc),
@@ -178,13 +207,16 @@ async def get_report(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    """Everything the report screen needs, in one call."""
+    """Everything the report screen needs, in one call.
+
+    The themes were generated when the session ended, so this is a plain read.
+    """
     session = await _get_owned_session(db, session_id, str(current_user["_id"]))
-    questions = session.get("questions", [])
 
     return {
         "session": _to_out(session),
-        **interview_service.collect_feedback(questions),
+        "strengths": session.get("strengths", []),
+        "improvements": session.get("improvements", []),
     }
 
 

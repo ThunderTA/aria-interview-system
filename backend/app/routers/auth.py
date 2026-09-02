@@ -12,7 +12,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db.mongodb import get_db
-from app.models.user import TokenPair, UserCreate, UserLogin
+from app.models.user import RefreshRequest, TokenPair, UserCreate, UserLogin
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -51,8 +51,13 @@ async def login(payload: UserLogin, db: AsyncIOMotorDatabase = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=TokenPair)
-async def refresh(refresh_token: str, db: AsyncIOMotorDatabase = Depends(get_db)):
-    payload = decode_token(refresh_token)
+async def refresh(payload_in: RefreshRequest, db: AsyncIOMotorDatabase = Depends(get_db)):
+    """Exchange a refresh token for a new token pair.
+
+    The token comes in the request body, not a query parameter — query strings
+    end up in server and proxy access logs, which is no place for a credential.
+    """
+    payload = decode_token(payload_in.refresh_token)
     if payload is None or payload.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 

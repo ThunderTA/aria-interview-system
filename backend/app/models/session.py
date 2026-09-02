@@ -33,8 +33,6 @@ class QuestionAnswer(BaseModel):
     feedback_text: str | None = None
     # Rubric breakdown behind content_score (each 0-10), from the LLM judge.
     rubric: dict[str, int] | None = None
-    strengths: list[str] = Field(default_factory=list)
-    improvements: list[str] = Field(default_factory=list)
     answered_at: datetime | None = None
 
 

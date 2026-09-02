@@ -88,8 +88,6 @@ async def build_next_question(
         "topic": generated["topic"],
         "difficulty_level": difficulty,
         "order_index": len(questions),
-        "strengths": [],
-        "improvements": [],
     }
 
 
@@ -122,8 +120,6 @@ async def score_and_advance(
             "content_score": scored["content_score"],
             "rubric": {k: scored[k] for k in ("correctness", "depth", "relevance", "clarity")},
             "feedback_text": scored["feedback"],
-            "strengths": scored["strengths"],
-            "improvements": scored["improvements"],
             "answered_at": datetime.now(timezone.utc),
         }
     )
@@ -196,15 +192,18 @@ def compute_aggregates(questions: list[dict]) -> dict:
     }
 
 
-def collect_feedback(questions: list[dict]) -> dict[str, list[str]]:
-    """Roll per-answer strengths/improvements up to the session level, de-duplicated."""
-    strengths: list[str] = []
-    improvements: list[str] = []
-    for q in questions:
-        strengths.extend(q.get("strengths", []))
-        improvements.extend(q.get("improvements", []))
+async def summarise(role: str, questions: list[dict]) -> dict[str, list[str]]:
+    """Session-level strengths and improvements, generated once when it ends.
 
-    return {
-        "strengths": list(dict.fromkeys(strengths))[:5],
-        "improvements": list(dict.fromkeys(improvements))[:5],
-    }
+    Best-effort: a summary failure must not stop a session being finalised, so
+    the report simply shows no themes rather than erroring.
+    """
+    answered = [q for q in questions if q.get("content_score") is not None]
+    if not answered:
+        return {"strengths": [], "improvements": []}
+
+    try:
+        return await llm_judge.summarise_session(role, answered)
+    except Exception:
+        logger.exception("Session summary failed; returning no themes")
+        return {"strengths": [], "improvements": []}

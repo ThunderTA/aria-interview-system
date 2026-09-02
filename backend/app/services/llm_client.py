@@ -29,8 +29,18 @@ async def chat_json(
     schema: dict,
     *,
     temperature: float = 0.7,
+    max_tokens: int | None = None,
 ) -> dict:
-    """Run a chat completion constrained to `schema` and return the parsed object."""
+    """Run a chat completion constrained to `schema` and return the parsed object.
+
+    `max_tokens` matters more than it looks: local generation is output-token
+    bound, so capping the response is the main lever on how long a candidate
+    waits mid-interview.
+    """
+    options: dict = {"temperature": temperature}
+    if max_tokens is not None:
+        options["num_predict"] = max_tokens
+
     payload = {
         "model": settings.llm_model,
         "messages": [
@@ -39,7 +49,7 @@ async def chat_json(
         ],
         "format": schema,
         "stream": False,
-        "options": {"temperature": temperature},
+        "options": options,
     }
 
     try:

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { uploadResume } from "../api/resume";
+import { createSession } from "../api/sessions";
 import AppHeader from "../components/AppHeader";
 import Notice from "../components/Notice";
 import RoleCard from "../components/RoleCard";
@@ -15,6 +16,23 @@ export default function Setup() {
   const [uploadState, setUploadState] = useState("idle");
   const [parsed, setParsed] = useState(null);
   const [uploadError, setUploadError] = useState(null);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState(null);
+
+  const handleStart = async () => {
+    setStarting(true);
+    setStartError(null);
+    try {
+      const session = await createSession(selectedRole);
+      navigate("/interview", { state: { session } });
+    } catch (err) {
+      setStartError(
+        err.response?.data?.detail ||
+          "The interview engine isn't reachable. Check that `ollama serve` is running."
+      );
+      setStarting(false);
+    }
+  };
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -117,16 +135,18 @@ export default function Setup() {
       </section>
 
       <div className="setup-actions">
-        <Notice variant="preview" title="Preview mode.">
-          Live interviews need the speech and scoring engines, which aren't built yet. Continuing
-          shows the interview screens as a UI preview.
+        <Notice title="Typed answers for now.">
+          Questions and scoring are live, running on a local model. Voice capture and the camera
+          analysis arrive with the speech milestone, so you'll type your answers this round.
         </Notice>
+        {startError && <Notice title="Couldn't start the interview.">{startError}</Notice>}
         <button
           type="button"
           className="setup-primary-button"
-          onClick={() => navigate("/interview", { state: { role: selectedRole } })}
+          onClick={handleStart}
+          disabled={starting}
         >
-          Continue to preview →
+          {starting ? "Preparing your first question..." : "Start interview →"}
         </button>
       </div>
     </div>
