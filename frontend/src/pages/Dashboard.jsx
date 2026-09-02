@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getCurrentUser, clearTokens } from "../api/auth";
-import Logo from "../components/Logo";
+import { Link } from "react-router-dom";
+import { getCurrentUser } from "../api/auth";
+import AppHeader from "../components/AppHeader";
 import "./Dashboard.css";
 
 function initials(name) {
@@ -14,7 +14,6 @@ function initials(name) {
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
 
@@ -23,11 +22,6 @@ export default function Dashboard() {
       .then(setUser)
       .catch(() => setError("Could not load your profile — please log in again."));
   }, []);
-
-  const handleLogout = () => {
-    clearTokens();
-    navigate("/login");
-  };
 
   if (error) {
     return (
@@ -39,15 +33,7 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-shell">
-      <header className="dashboard-header">
-        <div className="dashboard-header__mark">
-          <Logo size={24} />
-          <span>ARIA</span>
-        </div>
-        <button className="dashboard-header__logout" onClick={handleLogout}>
-          Log out
-        </button>
-      </header>
+      <AppHeader />
 
       <div className="bento">
         <section className="bento-tile bento-tile--welcome">
@@ -67,10 +53,19 @@ export default function Dashboard() {
               Pick a role, and ARIA will adapt the difficulty to how you're doing in real time.
             </p>
           </div>
-          <button className="bento-cta__button" disabled title="Interview flow ships next milestone">
-            Start interview
-            <span className="bento-cta__soon">Coming soon</span>
-          </button>
+          <div className="bento-cta__actions">
+            <button
+              className="bento-cta__button"
+              disabled
+              title="Interview flow ships next milestone"
+            >
+              Start interview
+              <span className="bento-cta__soon">Coming soon</span>
+            </button>
+            <Link to="/setup" className="bento-cta__preview">
+              Preview the flow →
+            </Link>
+          </div>
         </section>
 
         <section className="bento-tile bento-tile--stat">

@@ -131,16 +131,25 @@ pages, to keep the product visually consistent.
 
 ## Current Status
 
-This repo currently has a working **auth vertical slice** (signup, login,
-JWT refresh, `/users/me`) end-to-end across frontend, backend, and MongoDB,
-with a fully designed UI (auth pages + bento-grid dashboard). Resume
-upload, the session/interview endpoints, and the real-time WebSocket
-interview loop are scaffolded with correct route signatures and Pydantic
-models, but return `501 Not Implemented` — each has a `TODO` comment
-pointing to the relevant service module in `backend/app/services/`. These
-are the next build steps per the project timeline (STT integration, LLM
-feedback engine, RL difficulty engine, CV analysis, session history — see
-the Gantt chart in the project proposal).
+**Working end-to-end:** the auth vertical slice (signup, login, JWT
+refresh, `/users/me`) across frontend, backend, and MongoDB.
+
+**All 6 UI screens exist:** Login, Signup, Dashboard (bento grid), Setup
+(resume upload + role selection), Interview, and Report.
+
+**Not built yet:** the AI backend. `POST /resume/upload`, the session
+endpoints, and the WebSocket interview loop are scaffolded with correct
+route signatures and Pydantic models but return `501 Not Implemented`, each
+with a `TODO` pointing at the relevant module in `backend/app/services/`
+(`asr.py`, `llm_judge.py`, `rl_engine.py`, `cv_analysis.py`).
+
+Because of that, the Interview and Report screens run in a clearly-labelled
+**Preview mode** — they show the real layout and interactions, but nothing
+is recorded, transcribed, or scored yet, and no fake scores are displayed.
+Setup's resume upload calls the real endpoint and handles the expected
+`501` with a plain explanatory notice. Next build steps per the project
+timeline: STT integration, LLM feedback engine, RL difficulty engine, CV
+analysis, session history (see the Gantt chart in the project proposal).
 
 ## Deployment
 
