@@ -96,16 +96,43 @@
   display: flex;
   align-items: flex-end;
   gap: 4px;
-  height: 48px;
+  height: 56px;
 }
 
-.brand-panel__waveform span {
+.brand-panel__bar {
+  /* Button reset — this is a <button> so it gets a real click/tap target and
+     works with the keyboard, not a styled <div>. */
+  appearance: none;
+  border: none;
+  padding: 0;
   flex: 1;
   min-width: 3px;
+  height: 100%;
   border-radius: var(--radius-full);
   background: linear-gradient(180deg, var(--accent), var(--signal));
   opacity: 0.7;
+  cursor: pointer;
+  transform-origin: bottom center;
   animation: wave 1.8s ease-in-out infinite;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.brand-panel__bar:hover {
+  opacity: 1;
+}
+
+.brand-panel__bar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.brand-panel__bar--hit {
+  /* A second animation on transform/filter, layered on top of `wave` (which
+     only touches height) so the tap feedback and the ambient motion never
+     fight over the same property. */
+  animation:
+    wave 1.8s ease-in-out infinite,
+    bar-pluck 0.4s ease-out;
 }
 
 @keyframes wave {
@@ -115,6 +142,22 @@
   }
   50% {
     height: 100%;
+  }
+}
+
+@keyframes bar-pluck {
+  0% {
+    transform: scaleX(1);
+    filter: drop-shadow(0 0 0 rgba(255, 176, 32, 0));
+  }
+  25% {
+    transform: scaleX(1.6);
+    filter: drop-shadow(0 0 8px rgba(255, 176, 32, 0.85));
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    filter: drop-shadow(0 0 0 rgba(255, 176, 32, 0));
   }
 }
 

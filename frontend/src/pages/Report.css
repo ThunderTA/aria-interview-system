@@ -1,7 +1,29 @@
 .report-shell {
-  max-width: 1000px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: var(--space-6) var(--space-5) var(--space-8);
+}
+
+.report-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  align-items: start;
+  gap: var(--space-5);
+}
+
+.report-side {
+  position: sticky;
+  top: var(--space-5);
+}
+
+@media (max-width: 960px) {
+  .report-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .report-side {
+    position: static;
+  }
 }
 
 .report-intro {
@@ -302,6 +324,71 @@
   .breakdown__feedback {
     padding-left: 0;
   }
+}
+
+/* Speaking pace side panel */
+.report-panel--pace {
+  margin-bottom: 0;
+}
+
+.pace-average {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.pace-average__value {
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  font-weight: 600;
+  color: var(--signal);
+  font-variant-numeric: tabular-nums;
+}
+
+.pace-average__unit {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.pace-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.pace-grid__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.pace-grid__q {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.pace-grid__value {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pace-grid__unit {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  margin-top: -2px;
 }
 
 .breakdown__signals {

@@ -1,4 +1,6 @@
+import { useCallback, useRef, useState } from "react";
 import Logo from "./Logo";
+import { frequencyForIndex, playTone } from "../utils/tones";
 import "./BrandPanel.css";
 
 const FEATURES = [
@@ -8,8 +10,28 @@ const FEATURES = [
 ];
 
 const BAR_COUNT = 24;
+const HIT_DURATION_MS = 400;
 
 export default function BrandPanel() {
+  // Bars currently mid-pluck, so the click animation can layer on top of the
+  // ambient idle motion without the two fighting over the same CSS property.
+  const [hitBars, setHitBars] = useState(() => new Set());
+  const timeoutsRef = useRef({});
+
+  const touchBar = useCallback((index) => {
+    playTone(frequencyForIndex(index));
+
+    setHitBars((prev) => new Set(prev).add(index));
+    clearTimeout(timeoutsRef.current[index]);
+    timeoutsRef.current[index] = setTimeout(() => {
+      setHitBars((prev) => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+    }, HIT_DURATION_MS);
+  }, []);
+
   return (
     <aside className="brand-panel">
       <div className="brand-panel__glow" aria-hidden="true" />
@@ -39,9 +61,19 @@ export default function BrandPanel() {
         </ul>
       </div>
 
-      <div className="brand-panel__waveform" aria-hidden="true">
+      {/* Decorative, but touchable: each bar plays a note on the pentatonic
+          scale, so tapping across them in any order still sounds musical. */}
+      <div className="brand-panel__waveform">
         {Array.from({ length: BAR_COUNT }).map((_, i) => (
-          <span key={i} style={{ animationDelay: `${(i % 8) * 90}ms` }} />
+          <button
+            key={i}
+            type="button"
+            tabIndex={-1}
+            aria-hidden="true"
+            className={`brand-panel__bar${hitBars.has(i) ? " brand-panel__bar--hit" : ""}`}
+            style={{ animationDelay: `${(i % 8) * 90}ms` }}
+            onPointerDown={() => touchBar(i)}
+          />
         ))}
       </div>
     </aside>

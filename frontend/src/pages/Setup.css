@@ -34,12 +34,14 @@
   color: var(--text-secondary);
 }
 
-.setup-optional {
+.setup-required {
   font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-tertiary);
-  border: 1px solid var(--border);
+  color: var(--accent);
+  border: 1px solid rgba(255, 176, 32, 0.4);
+  background: rgba(255, 176, 32, 0.08);
   border-radius: var(--radius-full);
   padding: 2px 8px;
 }
@@ -54,6 +56,16 @@
   background: var(--surface);
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-lg);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.resume-drop--required {
+  border-color: rgba(255, 176, 32, 0.4);
+}
+
+.resume-drop--done {
+  border-style: solid;
+  border-color: rgba(77, 229, 192, 0.4);
 }
 
 .resume-drop__name {
@@ -195,9 +207,20 @@
     box-shadow var(--duration-fast) var(--ease-out);
 }
 
-.setup-primary-button:hover {
+.setup-primary-button:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 8px 24px -8px rgba(255, 176, 32, 0.5);
+}
+
+.setup-primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.setup-actions__hint {
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  margin-top: calc(-1 * var(--space-2));
 }
 
 .setup-secondary-button {

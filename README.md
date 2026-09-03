@@ -151,8 +151,10 @@ pages, to keep the product visually consistent.
   which pre-selects the inferred role. `GET`/`PATCH /resume` let the
   candidate read back and correct what was inferred.
 
-**All 6 UI screens exist:** Login, Signup, Dashboard (bento grid), Setup
-(resume upload + role selection), Interview, and Report.
+**A public landing page plus all 6 authenticated screens:** Landing, Login,
+Signup, Dashboard (bento grid), Setup (resume upload — required, since
+questions are grounded in it — + role selection), Interview, and Report
+(with a per-question speaking-pace grid alongside the breakdown).
 
 - **Spoken answers** — the candidate speaks; the browser records, the backend
   transcribes locally with faster-whisper, and the same scoring path runs.

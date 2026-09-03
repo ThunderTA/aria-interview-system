@@ -50,7 +50,13 @@ export default function Report() {
 
   const { session, strengths, improvements } = report;
   const role = getRole(session.role);
-  const answered = session.questions.filter((q) => q.content_score != null);
+  const answered = session.questions
+    .filter((q) => q.content_score != null)
+    .map((q, i) => ({ ...q, num: i + 1 }));
+  const spokenAnswers = answered.filter((q) => q.wpm != null);
+  const avgWpm = spokenAnswers.length
+    ? Math.round(spokenAnswers.reduce((sum, q) => sum + q.wpm, 0) / spokenAnswers.length)
+    : null;
 
   const tiles = [
     { label: "Overall", value: session.overall_score, hint: "Across all measured dimensions" },
@@ -71,120 +77,154 @@ export default function Report() {
         </p>
       </div>
 
-      <div className="score-grid">
-        {tiles.map((tile) => (
-          <section key={tile.label} className="score-tile">
-            <p className="score-tile__label">{tile.label}</p>
-            <p className={`score-tile__value${tile.value == null ? " score-tile__value--muted" : ""}`}>
-              {tile.value == null ? "—" : Math.round(tile.value)}
-            </p>
-            <p className="score-tile__hint">{tile.hint}</p>
-          </section>
-        ))}
-      </div>
-
-      {(session.delivery_score_avg == null || session.visual_score_avg == null) && (
-        <Notice title="Some dimensions weren't measured.">
-          {session.delivery_score_avg == null
-            ? "Delivery needs a spoken answer — typed ones are scored on content only. "
-            : ""}
-          {session.visual_score_avg == null
-            ? "Visual scores need the camera on while you answer. "
-            : ""}
-          Unmeasured dimensions are left out of the overall score rather than counted as zero.
-        </Notice>
-      )}
-
-      <div className="report-columns">
-        <section className="report-panel">
-          <h2>Strengths</h2>
-          {strengths.length ? (
-            <ul className="report-list report-list--strength">
-              {strengths.map((s) => (
-                <li key={s}>{s}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="report-empty">No strengths were identified in this session.</p>
-          )}
-        </section>
-
-        <section className="report-panel">
-          <h2>Areas to improve</h2>
-          {improvements.length ? (
-            <ul className="report-list report-list--improve">
-              {improvements.map((s) => (
-                <li key={s}>{s}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="report-empty">Nothing flagged for improvement.</p>
-          )}
-        </section>
-      </div>
-
-      <section className="report-panel">
-        <h2>Question breakdown</h2>
-        {answered.length === 0 ? (
-          <p className="report-empty">No questions were answered in this session.</p>
-        ) : (
-          <ol className="breakdown">
-            {answered.map((q) => (
-              <li key={q.question_id} className="breakdown__item">
-                <div className="breakdown__head">
-                  <span className="breakdown__score">{Math.round(q.content_score)}</span>
-                  <div>
-                    <p className="breakdown__question">{q.text}</p>
-                    <p className="breakdown__meta">
-                      {q.topic} · difficulty {q.difficulty_level}
-                    </p>
-                  </div>
-                </div>
-
-                {q.rubric && (
-                  <div className="rubric">
-                    {Object.entries(RUBRIC_LABELS).map(([key, label]) => (
-                      <div key={key} className="rubric__row">
-                        <span className="rubric__label">{label}</span>
-                        <span className="rubric__bar">
-                          <span
-                            className="rubric__fill"
-                            style={{ width: `${(q.rubric[key] ?? 0) * 10}%` }}
-                          />
-                        </span>
-                        <span className="rubric__value">{q.rubric[key] ?? 0}/10</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {(q.delivery_note || q.visual_note) && (
-                  <div className="breakdown__signals">
-                    {q.delivery_note && (
-                      <span>
-                        <strong>{Math.round(q.delivery_score)}</strong> delivery ·{" "}
-                        {q.delivery_note}
-                      </span>
-                    )}
-                    {q.visual_note && (
-                      <span>
-                        <strong>{Math.round(q.gaze_score)}</strong> eye contact · {q.visual_note}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {q.feedback_text && <p className="breakdown__feedback">{q.feedback_text}</p>}
-              </li>
+      <div className="report-layout">
+        <div className="report-main">
+          <div className="score-grid">
+            {tiles.map((tile) => (
+              <section key={tile.label} className="score-tile">
+                <p className="score-tile__label">{tile.label}</p>
+                <p
+                  className={`score-tile__value${tile.value == null ? " score-tile__value--muted" : ""}`}
+                >
+                  {tile.value == null ? "—" : Math.round(tile.value)}
+                </p>
+                <p className="score-tile__hint">{tile.hint}</p>
+              </section>
             ))}
-          </ol>
-        )}
-      </section>
+          </div>
 
-      <div className="report-actions">
-        <Link to="/setup" className="report-cta">
-          Practise again →
-        </Link>
+          {(session.delivery_score_avg == null || session.visual_score_avg == null) && (
+            <Notice title="Some dimensions weren't measured.">
+              {session.delivery_score_avg == null
+                ? "Delivery needs a spoken answer — typed ones are scored on content only. "
+                : ""}
+              {session.visual_score_avg == null
+                ? "Visual scores need the camera on while you answer. "
+                : ""}
+              Unmeasured dimensions are left out of the overall score rather than counted as zero.
+            </Notice>
+          )}
+
+          <div className="report-columns">
+            <section className="report-panel">
+              <h2>Strengths</h2>
+              {strengths.length ? (
+                <ul className="report-list report-list--strength">
+                  {strengths.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="report-empty">No strengths were identified in this session.</p>
+              )}
+            </section>
+
+            <section className="report-panel">
+              <h2>Areas to improve</h2>
+              {improvements.length ? (
+                <ul className="report-list report-list--improve">
+                  {improvements.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="report-empty">Nothing flagged for improvement.</p>
+              )}
+            </section>
+          </div>
+
+          <section className="report-panel">
+            <h2>Question breakdown</h2>
+            {answered.length === 0 ? (
+              <p className="report-empty">No questions were answered in this session.</p>
+            ) : (
+              <ol className="breakdown">
+                {answered.map((q) => (
+                  <li key={q.question_id} className="breakdown__item">
+                    <div className="breakdown__head">
+                      <span className="breakdown__score">{Math.round(q.content_score)}</span>
+                      <div>
+                        <p className="breakdown__question">{q.text}</p>
+                        <p className="breakdown__meta">
+                          Q{q.num} · {q.topic} · difficulty {q.difficulty_level}
+                        </p>
+                      </div>
+                    </div>
+
+                    {q.rubric && (
+                      <div className="rubric">
+                        {Object.entries(RUBRIC_LABELS).map(([key, label]) => (
+                          <div key={key} className="rubric__row">
+                            <span className="rubric__label">{label}</span>
+                            <span className="rubric__bar">
+                              <span
+                                className="rubric__fill"
+                                style={{ width: `${(q.rubric[key] ?? 0) * 10}%` }}
+                              />
+                            </span>
+                            <span className="rubric__value">{q.rubric[key] ?? 0}/10</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {(q.delivery_note || q.visual_note) && (
+                      <div className="breakdown__signals">
+                        {q.delivery_note && (
+                          <span>
+                            <strong>{Math.round(q.delivery_score)}</strong> delivery ·{" "}
+                            {q.delivery_note}
+                          </span>
+                        )}
+                        {q.visual_note && (
+                          <span>
+                            <strong>{Math.round(q.gaze_score)}</strong> eye contact ·{" "}
+                            {q.visual_note}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {q.feedback_text && <p className="breakdown__feedback">{q.feedback_text}</p>}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+
+          <div className="report-actions">
+            <Link to="/setup" className="report-cta">
+              Practise again →
+            </Link>
+          </div>
+        </div>
+
+        <aside className="report-side">
+          <section className="report-panel report-panel--pace">
+            <h2>Speaking pace</h2>
+            {spokenAnswers.length ? (
+              <>
+                <p className="pace-average">
+                  <span className="pace-average__value">{avgWpm}</span>
+                  <span className="pace-average__unit">wpm average</span>
+                </p>
+                <div className="pace-grid">
+                  {spokenAnswers.map((q) => (
+                    <div key={q.question_id} className="pace-grid__cell">
+                      <span className="pace-grid__q">Q{q.num}</span>
+                      <span className="pace-grid__value">{Math.round(q.wpm)}</span>
+                      <span className="pace-grid__unit">wpm</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="report-empty">
+                No spoken answers in this session — pace is measured from audio.
+              </p>
+            )}
+          </section>
+        </aside>
       </div>
     </div>
   );

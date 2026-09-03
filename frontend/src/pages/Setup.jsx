@@ -18,8 +18,10 @@ export default function Setup() {
   const [uploadError, setUploadError] = useState(null);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState(null);
+  const resumeReady = uploadState === "done" && parsed != null;
 
   const handleStart = async () => {
+    if (!resumeReady) return;
     setStarting(true);
     setStartError(null);
     try {
@@ -63,16 +65,19 @@ export default function Setup() {
 
       <div className="setup-intro">
         <h1>Set up your interview</h1>
-        <p>Add your resume for tailored questions, then pick the role you want to practise.</p>
+        <p>
+          ARIA tailors your questions to your actual experience, so a resume is required before
+          you can start.
+        </p>
       </div>
 
       <section className="setup-section">
         <div className="setup-section__head">
           <h2>1 · Resume</h2>
-          <span className="setup-optional">Optional</span>
+          <span className="setup-required">Required</span>
         </div>
 
-        <div className="resume-drop">
+        <div className={`resume-drop${resumeReady ? " resume-drop--done" : " resume-drop--required"}`}>
           <input
             ref={fileInputRef}
             type="file"
@@ -135,19 +140,19 @@ export default function Setup() {
       </section>
 
       <div className="setup-actions">
-        <Notice title="Typed answers for now.">
-          Questions and scoring are live, running on a local model. Voice capture and the camera
-          analysis arrive with the speech milestone, so you'll type your answers this round.
-        </Notice>
         {startError && <Notice title="Couldn't start the interview.">{startError}</Notice>}
         <button
           type="button"
           className="setup-primary-button"
           onClick={handleStart}
-          disabled={starting}
+          disabled={starting || !resumeReady}
+          title={resumeReady ? undefined : "Upload your resume above to continue"}
         >
           {starting ? "Preparing your first question..." : "Start interview →"}
         </button>
+        {!resumeReady && (
+          <p className="setup-actions__hint">Upload your resume above to continue.</p>
+        )}
       </div>
     </div>
   );
