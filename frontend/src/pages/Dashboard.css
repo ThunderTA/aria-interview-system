@@ -4,7 +4,7 @@
   border-radius: var(--radius-sm);
   background: rgba(255, 92, 92, 0.1);
   border: 1px solid rgba(255, 92, 92, 0.3);
-  color: #ff9494;
+  color: var(--danger-text);
   font-size: 0.9rem;
 }
 
@@ -118,7 +118,7 @@
   font-family: var(--font-heading);
   font-size: 2rem;
   font-weight: 600;
-  color: var(--signal);
+  color: var(--signal-text);
 }
 
 .bento-stat__value--muted {
@@ -250,7 +250,7 @@
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 0.9rem;
-  color: var(--signal);
+  color: var(--signal-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -267,7 +267,7 @@
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .session-list__meta {

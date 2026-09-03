@@ -91,19 +91,21 @@ export default function Dashboard() {
 
         <section className="bento-tile bento-tile--stat">
           <p className="bento-tile__eyebrow">Sessions completed</p>
-          <p className="bento-stat__value">{scored.length}</p>
+          <p className={`bento-stat__value${scored.length > 0 ? " gradient-text" : " bento-stat__value--muted"}`}>
+            {scored.length}
+          </p>
         </section>
 
         <section className="bento-tile bento-tile--stat">
           <p className="bento-tile__eyebrow">Average score</p>
-          <p className={`bento-stat__value${averageScore == null ? " bento-stat__value--muted" : ""}`}>
+          <p className={`bento-stat__value${averageScore == null ? " bento-stat__value--muted" : " gradient-text"}`}>
             {averageScore ?? "—"}
           </p>
         </section>
 
         <section className="bento-tile bento-tile--stat">
           <p className="bento-tile__eyebrow">Practice streak</p>
-          <p className={`bento-stat__value${streak === 0 ? " bento-stat__value--muted" : ""}`}>
+          <p className={`bento-stat__value${streak === 0 ? " bento-stat__value--muted" : " gradient-text"}`}>
             {streak === 0 ? "—" : `${streak}d`}
           </p>
         </section>

@@ -13,10 +13,10 @@ import {
   submitAnswer,
   submitSpokenAnswer,
 } from "../api/sessions";
+import { difficultyLabel } from "../constants/difficulty";
 import { getRole } from "../constants/roles";
 import "./Interview.css";
 
-const DIFFICULTY_LABELS = { 1: "Warm-up", 2: "Easy", 3: "Moderate", 4: "Challenging", 5: "Hard" };
 const TOTAL_QUESTIONS = 5;
 
 export default function Interview() {
@@ -131,7 +131,7 @@ export default function Interview() {
             </span>
             {question && (
               <span className="interview-chip interview-chip--difficulty">
-                {DIFFICULTY_LABELS[question.difficulty_level] ?? "Moderate"}
+                {difficultyLabel(question.difficulty_level)}
               </span>
             )}
             {question?.topic && <span className="interview-chip">{question.topic}</span>}

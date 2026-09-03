@@ -65,14 +65,14 @@
 }
 
 .recorder__error {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .mode-switch {
   background: none;
   border: none;
   padding: 0;
-  color: var(--signal);
+  color: var(--signal-text);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;

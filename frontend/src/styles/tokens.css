@@ -1,29 +1,43 @@
 :root {
   /* Surfaces */
-  --bg: #0a0b0f;
-  --bg-elevated: #101218;
-  --surface: #15171e;
-  --surface-hover: #1b1e27;
-  --border: #262933;
-  --border-strong: #363a47;
+  --bg: #f6f7f9;
+  --bg-elevated: #edeff2;
+  --surface: #ffffff;
+  --surface-hover: #f4f5f7;
+  --border: #e5e7eb;
+  --border-strong: #c9cdd6;
 
   /* Text */
-  --text-primary: #f2f3f5;
-  --text-secondary: #9aa0ac;
-  --text-tertiary: #676d7a;
+  --text-primary: #14161c;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
 
-  /* Brand accents — amber "spotlight" + teal "signal", not the default AI-purple */
+  /* Brand accents — amber "spotlight" + teal "signal", not the default AI-purple.
+     --accent/--signal stay at full saturation for fills (buttons, gradients,
+     translucent badge backgrounds): a large colored surface reads fine at
+     these values. Neither passes body-text contrast against a light page
+     (~1.8:1 for amber on white), so --accent-text/--signal-text are the
+     darkened variants for anything rendering as foreground text or a small
+     icon — anywhere a `color:` (not `background`/`border`) uses the brand
+     color. */
   --accent: #ffb020;
   --accent-strong: #ffc659;
   --accent-ink: #1a1200;
+  --accent-text: #a15c00;
   --signal: #4de5c0;
   --signal-strong: #7cf0d6;
+  --signal-text: #0f7d68;
   --danger: #ff5c5c;
+  --danger-text: #b42318;
 
   /* Gradients */
   --gradient-brand: linear-gradient(135deg, #ffb020 0%, #ff6b4a 100%);
-  --gradient-glow: radial-gradient(circle at 30% 20%, rgba(255, 176, 32, 0.25), transparent 55%),
-    radial-gradient(circle at 75% 65%, rgba(77, 229, 192, 0.18), transparent 50%);
+  /* Deepened version of the same gradient for text: --gradient-brand's own
+     stops only reach 1.8-2.8:1 against a light page, well under the 3:1
+     large-text floor. Both stops here clear ~5.2:1. */
+  --gradient-pop: linear-gradient(135deg, #a15c00 0%, #c2410c 100%);
+  --gradient-glow: radial-gradient(circle at 30% 20%, rgba(255, 176, 32, 0.16), transparent 55%),
+    radial-gradient(circle at 75% 65%, rgba(77, 229, 192, 0.14), transparent 50%);
 
   /* Typography */
   --font-heading: "Space Grotesk", "Inter", system-ui, sans-serif;

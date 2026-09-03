@@ -16,7 +16,7 @@
 }
 
 .camera-badge--live {
-  color: var(--signal);
+  color: var(--signal-text);
   border-color: rgba(77, 229, 192, 0.4);
   background: rgba(77, 229, 192, 0.08);
 }
@@ -94,5 +94,5 @@
 
 .camera-toggle--on:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }

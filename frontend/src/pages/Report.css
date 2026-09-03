@@ -238,7 +238,7 @@
   border: 1px solid var(--border-strong);
   font-family: var(--font-heading);
   font-weight: 600;
-  color: var(--signal);
+  color: var(--signal-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -344,7 +344,7 @@
   font-family: var(--font-heading);
   font-size: 1.9rem;
   font-weight: 600;
-  color: var(--signal);
+  color: var(--signal-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -403,7 +403,7 @@
 
 .breakdown__signals strong {
   font-family: var(--font-heading);
-  color: var(--accent);
+  color: var(--accent-text);
   font-variant-numeric: tabular-nums;
   margin-right: 2px;
 }

@@ -36,10 +36,10 @@ export default function Login() {
       <BrandPanel />
       <div className="auth-form-side">
         <div className="auth-card">
-          <div className="auth-card__mobile-mark">
+          <Link to="/" className="auth-card__mobile-mark">
             <Logo size={24} />
             <span>ARIA</span>
-          </div>
+          </Link>
           <h2>Welcome back</h2>
           <p className="auth-card__lede">Log in to continue practicing.</p>
 

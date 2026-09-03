@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { uploadResume } from "../api/resume";
 import { createSession } from "../api/sessions";
 import AppHeader from "../components/AppHeader";
+import DifficultyPicker from "../components/DifficultyPicker";
 import Notice from "../components/Notice";
 import RoleCard from "../components/RoleCard";
 import { ROLES, getRole } from "../constants/roles";
@@ -12,6 +13,7 @@ export default function Setup() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [selectedRole, setSelectedRole] = useState(ROLES[0].id);
+  const [difficulty, setDifficulty] = useState(null);
   const [fileName, setFileName] = useState(null);
   const [uploadState, setUploadState] = useState("idle");
   const [parsed, setParsed] = useState(null);
@@ -25,7 +27,7 @@ export default function Setup() {
     setStarting(true);
     setStartError(null);
     try {
-      const session = await createSession(selectedRole);
+      const session = await createSession(selectedRole, difficulty);
       navigate("/interview", { state: { session } });
     } catch (err) {
       setStartError(
@@ -137,6 +139,18 @@ export default function Setup() {
             />
           ))}
         </div>
+      </section>
+
+      <section className="setup-section">
+        <div className="setup-section__head">
+          <h2>3 · Difficulty</h2>
+        </div>
+        <DifficultyPicker value={difficulty} onChange={setDifficulty} />
+        <p className="setup-difficulty__hint">
+          {difficulty === null
+            ? "ARIA starts near the level your resume suggests, then adjusts after every answer."
+            : "This sets only the first question — ARIA still adjusts difficulty after that based on how you answer."}
+        </p>
       </section>
 
       <div className="setup-actions">

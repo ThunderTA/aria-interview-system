@@ -1,33 +1,92 @@
 import { Link } from "react-router-dom";
 import AdaptiveDemo from "../components/AdaptiveDemo";
+import {
+  AdaptiveIcon,
+  BrainIcon,
+  CameraIcon,
+  EyeIcon,
+  IconChip,
+  MicIcon,
+  PolicyIcon,
+  ResumeIcon,
+  ScoreIcon,
+  ShieldIcon,
+  TrendIcon,
+} from "../components/FeatureIcons";
 import Logo from "../components/Logo";
 import Reveal from "../components/Reveal";
 import "./Landing.css";
 
 const FEATURES = [
   {
+    icon: ResumeIcon,
+    tint: "accent",
     title: "Personalised from your resume",
     body: "Upload it once and ARIA infers your role, seniority, and skills, then grounds its questions in your actual background instead of a generic bank.",
   },
   {
+    icon: AdaptiveIcon,
+    tint: "signal",
     title: "Difficulty that adapts as you go",
     body: "A policy trained on interview performance raises or lowers the next question after every answer, so you're consistently working near the edge of what you can do.",
   },
   {
+    icon: ScoreIcon,
+    tint: "accent",
     title: "Scored on content and delivery",
     body: "Correctness, depth, relevance, and clarity are graded from what you said. Separately, your pace, pauses, and filler words are measured from how you said it.",
   },
   {
+    icon: EyeIcon,
+    tint: "signal",
     title: "Optional visual feedback",
     body: "Turn on your camera for eye contact, engagement, and posture. Frames are analysed and discarded — never stored, never uploaded.",
   },
   {
+    icon: ShieldIcon,
+    tint: "accent",
     title: "Runs on your machine",
     body: "Speech recognition, scoring, and visual analysis all run locally. No API keys, no third-party upload, no per-interview cost.",
   },
   {
+    icon: TrendIcon,
+    tint: "signal",
     title: "Progress across sessions",
     body: "Every interview is saved. Track your score trend, your practice streak, and where you're improving over time.",
+  },
+];
+
+const STATS = [
+  { value: "5", label: "Scored questions per session", hint: "Each graded on its own, live" },
+  { value: "4", label: "Rubric dimensions per answer", hint: "Correctness, depth, relevance, clarity" },
+  { value: "3", label: "Delivery signals from your voice", hint: "Pace, pauses, filler words" },
+  { value: "$0", label: "Cost per interview", hint: "Every model runs on your machine" },
+];
+
+const STACK = [
+  {
+    icon: MicIcon,
+    tint: "signal",
+    title: "Speech recognition",
+    body: "Whisper transcribes your spoken answer locally, with word-level timing — the same timing that pace and pause measurements are computed from.",
+  },
+  {
+    icon: BrainIcon,
+    tint: "accent",
+    title: "Question & scoring engine",
+    body: "A local LLM generates role-specific questions grounded in your resume, and grades each transcribed answer against a four-part rubric in the same pass.",
+  },
+  {
+    icon: PolicyIcon,
+    tint: "signal",
+    title: "Adaptive difficulty",
+    body: "A Q-learning policy picks the next question's difficulty from your last few scores, aiming to keep you stretched rather than coasting or stuck.",
+  },
+  {
+    icon: CameraIcon,
+    tint: "accent",
+    title: "Visual analysis",
+    body: "When the camera is on, sampled frames are read locally for head orientation and expression, producing eye-contact and engagement scores.",
   },
 ];
 
@@ -39,8 +98,8 @@ const STEPS = [
   },
   {
     n: "02",
-    title: "Choose a role",
-    body: "Practise a software engineering or HR/behavioural interview, pre-selected from your resume.",
+    title: "Choose a role and difficulty",
+    body: "Practise a software engineering or HR/behavioural interview, pre-selected from your resume. Start at Auto, or pick your own starting difficulty.",
   },
   {
     n: "03",
@@ -50,7 +109,7 @@ const STEPS = [
   {
     n: "04",
     title: "Review your report",
-    body: "A rubric breakdown, delivery statistics, and specific strengths and gaps to work on next.",
+    body: "A rubric breakdown, a per-question speaking-pace grid, and specific strengths and gaps to work on next.",
   },
 ];
 
@@ -71,6 +130,9 @@ export default function Landing() {
           <a href="#features" onClick={(e) => scrollTo(e, "features")}>
             Features
           </a>
+          <a href="#technology" onClick={(e) => scrollTo(e, "technology")}>
+            Technology
+          </a>
           <a href="#how-it-works" onClick={(e) => scrollTo(e, "how-it-works")}>
             How it works
           </a>
@@ -90,7 +152,8 @@ export default function Landing() {
           <div className="landing-hero__copy">
             <p className="landing-eyebrow">Interview practice, measured properly</p>
             <h1 className="landing-hero__headline">
-              Practice interviews that adapt to how you're actually performing.
+              Practice interviews that <span className="gradient-text">adapt</span> to how
+              you're actually performing.
             </h1>
             <p className="landing-hero__sub">
               ARIA runs a full mock interview — voice, and camera if you choose — then scores
@@ -149,6 +212,18 @@ export default function Landing() {
           </p>
         </Reveal>
 
+        <section className="landing-section landing-section--stats">
+          <div className="landing-stats">
+            {STATS.map((s, i) => (
+              <Reveal key={s.label} className="landing-stat" delay={i * 60}>
+                <p className="landing-stat__value gradient-text">{s.value}</p>
+                <p className="landing-stat__label">{s.label}</p>
+                <p className="landing-stat__hint">{s.hint}</p>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
         <section id="features" className="landing-section">
           <Reveal>
             <p className="landing-eyebrow">Features</p>
@@ -158,8 +233,34 @@ export default function Landing() {
           <div className="landing-features">
             {FEATURES.map((f, i) => (
               <Reveal key={f.title} className="landing-feature" delay={i * 60}>
+                <IconChip tint={f.tint}>
+                  <f.icon />
+                </IconChip>
                 <h3>{f.title}</h3>
                 <p>{f.body}</p>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        <section id="technology" className="landing-section landing-section--tinted">
+          <Reveal>
+            <p className="landing-eyebrow">Under the hood</p>
+            <h2 className="landing-section__title">Four engines, all running on your machine.</h2>
+            <p className="landing-section__sub">
+              No cloud inference, no per-token billing. This is what actually runs when you take
+              a mock interview.
+            </p>
+          </Reveal>
+
+          <div className="landing-features landing-features--stack">
+            {STACK.map((s, i) => (
+              <Reveal key={s.title} className="landing-feature" delay={i * 60}>
+                <IconChip tint={s.tint}>
+                  <s.icon />
+                </IconChip>
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
               </Reveal>
             ))}
           </div>
@@ -174,7 +275,7 @@ export default function Landing() {
           <ol className="landing-steps">
             {STEPS.map((s, i) => (
               <Reveal as="li" key={s.n} className="landing-step" delay={i * 60}>
-                <span className="landing-step__n">{s.n}</span>
+                <span className="landing-step__n gradient-text">{s.n}</span>
                 <div>
                   <h3>{s.title}</h3>
                   <p>{s.body}</p>
@@ -184,7 +285,7 @@ export default function Landing() {
           </ol>
         </section>
 
-        <section className="landing-section landing-section--demo">
+        <section className="landing-section landing-section--demo landing-section--tinted">
           <Reveal>
             <p className="landing-eyebrow">See it adapt</p>
             <h2 className="landing-section__title">

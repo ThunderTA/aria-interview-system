@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import Logo from "./Logo";
 import { frequencyForIndex, playTone } from "../utils/tones";
 import "./BrandPanel.css";
@@ -38,10 +39,10 @@ export default function BrandPanel() {
       <div className="brand-panel__grid" aria-hidden="true" />
 
       <div className="brand-panel__content">
-        <div className="brand-panel__mark">
+        <Link to="/" className="brand-panel__mark">
           <Logo size={28} />
           <span>ARIA</span>
-        </div>
+        </Link>
 
         <h1 className="brand-panel__headline">
           Practice interviews that <span>adapt to you.</span>

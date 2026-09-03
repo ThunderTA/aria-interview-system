@@ -84,7 +84,7 @@ export default function Report() {
               <section key={tile.label} className="score-tile">
                 <p className="score-tile__label">{tile.label}</p>
                 <p
-                  className={`score-tile__value${tile.value == null ? " score-tile__value--muted" : ""}`}
+                  className={`score-tile__value${tile.value == null ? " score-tile__value--muted" : " gradient-text"}`}
                 >
                   {tile.value == null ? "—" : Math.round(tile.value)}
                 </p>
@@ -205,7 +205,7 @@ export default function Report() {
             {spokenAnswers.length ? (
               <>
                 <p className="pace-average">
-                  <span className="pace-average__value">{avgWpm}</span>
+                  <span className="pace-average__value gradient-text">{avgWpm}</span>
                   <span className="pace-average__unit">wpm average</span>
                 </p>
                 <div className="pace-grid">

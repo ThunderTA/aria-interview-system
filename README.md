@@ -127,16 +127,26 @@ in `frontend/.env` must match wherever the backend is actually running.
 
 ## Design System
 
-The frontend uses a deliberate dark, tech-forward visual identity (not the
-default Tailwind-indigo look): design tokens live in
-`frontend/src/styles/tokens.css` — an amber/teal accent pair, a
-Space Grotesk (headings) + Inter (body) font pairing self-hosted via
-`@fontsource` (no external font CDN, so demos work offline), and an 8px
-spacing scale. The dashboard uses a bento-grid layout
+A light, formal visual identity (not the default Tailwind-indigo look):
+design tokens live in `frontend/src/styles/tokens.css` — an amber/teal
+accent pair, a Space Grotesk (headings) + Inter (body) font pairing
+self-hosted via `@fontsource` (no external font CDN, so demos work
+offline), and an 8px spacing scale. The dashboard uses a bento-grid layout
 (`frontend/src/pages/Dashboard.css`); auth pages use a split-screen layout
-with an animated brand panel (`frontend/src/components/BrandPanel.jsx`).
-Extend these tokens rather than hardcoding new colors when building further
-pages, to keep the product visually consistent.
+with an animated, touchable brand panel (`frontend/src/components/BrandPanel.jsx`).
+
+The raw `--accent`/`--signal` brand colors are vivid and fail text contrast
+against the light background (~1.8:1) — they're for fills only (buttons,
+gradients, translucent badge backgrounds, icon-chip backgrounds). Anything
+rendering as foreground text or a small icon uses the darkened
+`--accent-text`/`--signal-text`/`--danger-text` variants instead, each
+verified ≥4.5:1 against both `--bg` and `--surface`. Large display numbers
+(2rem+, e.g. dashboard stats, report scores) use the `.gradient-text`
+utility with `--gradient-pop` — a deepened version of the button gradient,
+since the button gradient's own stops don't clear even the 3:1 large-text
+floor. Extend these tokens rather than hardcoding new colors when building
+further pages, and re-check contrast against `--bg`/`--surface` (not just
+eyeballing it) before using a brand color as text.
 
 ## Current Status
 

@@ -37,12 +37,12 @@
 }
 
 .interview-chip--role {
-  color: var(--accent);
+  color: var(--accent-text);
   border-color: rgba(255, 176, 32, 0.4);
 }
 
 .interview-chip--difficulty {
-  color: var(--signal);
+  color: var(--signal-text);
   border-color: rgba(77, 229, 192, 0.35);
 }
 
@@ -225,7 +225,7 @@
   font-family: var(--font-heading);
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--signal);
+  color: var(--signal-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -238,7 +238,7 @@
 
 .answer-result__label em {
   font-style: normal;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .answer-result__feedback {
@@ -351,7 +351,7 @@
 .answer-result__delivery-score {
   font-family: var(--font-heading);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-text);
   font-variant-numeric: tabular-nums;
 }
 

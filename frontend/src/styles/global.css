@@ -16,6 +16,12 @@ body,
   height: 100%;
 }
 
+html {
+  /* Pins native chrome (scrollbars, form-control defaults) to light, so it
+     doesn't mismatch the page when the OS is set to dark. */
+  color-scheme: light;
+}
+
 body {
   margin: 0;
   font-family: var(--font-body);
@@ -41,7 +47,7 @@ p {
 }
 
 a {
-  color: var(--signal);
+  color: var(--signal-text);
 }
 
 button {
@@ -51,6 +57,17 @@ button {
 input,
 button {
   font-size: 16px;
+}
+
+/* Gradient text for large display numbers (2rem+/bold) — uses --gradient-pop,
+   not --gradient-brand: the button gradient's stops don't clear large-text
+   contrast on a light page, --gradient-pop is the same warm direction
+   deepened until they do. Not for body-sized text. */
+.gradient-text {
+  background: var(--gradient-pop);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 ::selection {
@@ -84,5 +101,5 @@ button {
 }
 
 .notice--preview .notice__title {
-  color: var(--accent);
+  color: var(--accent-text);
 }
