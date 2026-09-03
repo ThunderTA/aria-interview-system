@@ -17,16 +17,36 @@ function formatTime(totalSeconds) {
  * blocked, and an interview the candidate cannot answer at all is worse than
  * one answered by keyboard.
  */
-export default function AnswerRecorder({ onSubmitAudio, onSubmitText, disabled }) {
+export default function AnswerRecorder({
+  onSubmitAudio,
+  onSubmitText,
+  onStart,
+  onDiscard,
+  disabled,
+}) {
   const recorder = useAudioRecorder();
   const [mode, setMode] = useState("speak");
   const [text, setText] = useState("");
+
+  const handleStart = async () => {
+    const started = await recorder.start();
+    // Only begin sampling camera frames once the mic is actually live, so the
+    // frames line up with the audio being scored.
+    if (started) onStart?.();
+  };
 
   const handleStop = async () => {
     const result = await recorder.stop();
     if (result?.blob?.size) {
       onSubmitAudio(result.blob, result.extension);
+    } else {
+      onDiscard?.();
     }
+  };
+
+  const handleCancel = () => {
+    recorder.cancel();
+    onDiscard?.();
   };
 
   if (mode === "type") {
@@ -93,7 +113,7 @@ export default function AnswerRecorder({ onSubmitAudio, onSubmitText, disabled }
             <button type="button" className="recorder__stop" onClick={handleStop}>
               Done answering
             </button>
-            <button type="button" className="recorder__cancel" onClick={recorder.cancel}>
+            <button type="button" className="recorder__cancel" onClick={handleCancel}>
               Discard
             </button>
           </div>
@@ -103,7 +123,7 @@ export default function AnswerRecorder({ onSubmitAudio, onSubmitText, disabled }
           <button
             type="button"
             className="recorder__start"
-            onClick={recorder.start}
+            onClick={handleStart}
             disabled={disabled || !recorder.supported}
           >
             <span className="recorder__mic" aria-hidden="true" />

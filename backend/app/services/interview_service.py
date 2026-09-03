@@ -96,6 +96,7 @@ async def score_and_advance(
     session: dict,
     transcript: str,
     delivery: dict | None = None,
+    visual: dict | None = None,
 ) -> dict:
     """Score the current question's answer and learn from the outcome.
 
@@ -134,6 +135,17 @@ async def score_and_advance(
                 "delivery_score": delivery["delivery_score"],
                 "delivery_breakdown": delivery["delivery_breakdown"],
                 "delivery_note": delivery["note"],
+            }
+        )
+    # Present only when the camera was on and a face was actually visible.
+    if visual:
+        current.update(
+            {
+                "gaze_score": visual["gaze_score"],
+                "expression_score": visual["expression_score"],
+                "posture_score": visual["posture_score"],
+                "face_presence": visual["face_presence"],
+                "visual_note": visual["note"],
             }
         )
 
@@ -189,13 +201,27 @@ def compute_aggregates(questions: list[dict]) -> dict:
 
     content_avg = round(sum(scores) / len(scores), 1)
     delivery = [q["delivery_score"] for q in questions if q.get("delivery_score") is not None]
-    visual = [q["gaze_score"] for q in questions if q.get("gaze_score") is not None]
+
+    # Visual is the mean of gaze, expression and posture across the answers
+    # where the camera was actually on.
+    visual_per_question = [
+        (q["gaze_score"] + q["expression_score"] + q["posture_score"]) / 3
+        for q in questions
+        if q.get("gaze_score") is not None
+        and q.get("expression_score") is not None
+        and q.get("posture_score") is not None
+    ]
 
     delivery_avg = round(sum(delivery) / len(delivery), 1) if delivery else None
-    visual_avg = round(sum(visual) / len(visual), 1) if visual else None
+    visual_avg = (
+        round(sum(visual_per_question) / len(visual_per_question), 1)
+        if visual_per_question
+        else None
+    )
 
-    # Until speech and CV analysis land, content is the only signal, so the
-    # overall score is content alone rather than a weighted blend of nulls.
+    # Dimensions the candidate didn't use (typed answers, camera off) are left
+    # out of the overall rather than counted as zero, which would misrepresent
+    # them as having performed badly.
     present = [v for v in (content_avg, delivery_avg, visual_avg) if v is not None]
     return {
         "overall_score": round(sum(present) / len(present), 1),

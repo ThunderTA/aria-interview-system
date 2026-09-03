@@ -83,10 +83,15 @@ export default function Report() {
         ))}
       </div>
 
-      {session.delivery_score_avg == null && (
-        <Notice title="Content only, for now.">
-          Delivery and visual scores stay empty until the speech and camera analysis milestones
-          land. The overall score reflects content alone rather than guessing at the rest.
+      {(session.delivery_score_avg == null || session.visual_score_avg == null) && (
+        <Notice title="Some dimensions weren't measured.">
+          {session.delivery_score_avg == null
+            ? "Delivery needs a spoken answer — typed ones are scored on content only. "
+            : ""}
+          {session.visual_score_avg == null
+            ? "Visual scores need the camera on while you answer. "
+            : ""}
+          Unmeasured dimensions are left out of the overall score rather than counted as zero.
         </Notice>
       )}
 
@@ -150,6 +155,22 @@ export default function Report() {
                         <span className="rubric__value">{q.rubric[key] ?? 0}/10</span>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {(q.delivery_note || q.visual_note) && (
+                  <div className="breakdown__signals">
+                    {q.delivery_note && (
+                      <span>
+                        <strong>{Math.round(q.delivery_score)}</strong> delivery ·{" "}
+                        {q.delivery_note}
+                      </span>
+                    )}
+                    {q.visual_note && (
+                      <span>
+                        <strong>{Math.round(q.gaze_score)}</strong> eye contact · {q.visual_note}
+                      </span>
+                    )}
                   </div>
                 )}
 

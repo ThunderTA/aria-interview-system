@@ -36,6 +36,9 @@ class QuestionAnswer(BaseModel):
     # Pace/filler/pause sub-scores behind delivery_score; spoken answers only.
     delivery_breakdown: dict[str, float] | None = None
     delivery_note: str | None = None
+    # Camera-derived; present only when a face was visible in enough frames.
+    face_presence: float | None = None
+    visual_note: str | None = None
     answered_at: datetime | None = None
 
 

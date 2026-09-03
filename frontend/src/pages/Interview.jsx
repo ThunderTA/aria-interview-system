@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AnswerRecorder from "../components/AnswerRecorder";
 import AppHeader from "../components/AppHeader";
+import CameraPanel from "../components/CameraPanel";
 import Notice from "../components/Notice";
 import ScoringProgress from "../components/ScoringProgress";
+import useCamera from "../hooks/useCamera";
 import {
   currentQuestionIndex,
   endSession,
@@ -27,6 +29,8 @@ export default function Interview() {
   const [error, setError] = useState(null);
   const [lastResult, setLastResult] = useState(null);
   const [lastSubmissionWasSpoken, setLastSubmissionWasSpoken] = useState(false);
+  const [answering, setAnswering] = useState(false);
+  const camera = useCamera();
 
   // Reached directly without going through Setup — there's no session to run.
   useEffect(() => {
@@ -42,6 +46,7 @@ export default function Interview() {
   const isLastAnswered = index < 0;
   // Most recent answer that carried delivery metrics, i.e. was spoken.
   const lastSpoken = [...session.questions].reverse().find((q) => q.wpm != null);
+  const lastVisual = [...session.questions].reverse().find((q) => q.gaze_score != null);
 
   /** Runs an answer through scoring, then queues the next question. */
   const runSubmission = async (submit) => {
@@ -60,6 +65,8 @@ export default function Interview() {
         transcript: justScored.transcript,
         deliveryScore: justScored.delivery_score,
         deliveryNote: justScored.delivery_note,
+        visualNote: justScored.visual_note,
+        gazeScore: justScored.gaze_score,
         previousDifficulty: justScored.difficulty_level,
         nextDifficulty: null,
       });
@@ -90,8 +97,11 @@ export default function Interview() {
     }
   };
 
-  const handleSpokenAnswer = (blob, extension) =>
-    runSubmission(() => submitSpokenAnswer(session.id, blob, extension));
+  const handleSpokenAnswer = (blob, extension) => {
+    const frames = camera.stopSampling();
+    setAnswering(false);
+    return runSubmission(() => submitSpokenAnswer(session.id, blob, extension, frames));
+  };
 
   const handleTypedAnswer = (text) =>
     runSubmission(() => submitAnswer(session.id, text));
@@ -172,6 +182,15 @@ export default function Interview() {
                 </p>
               )}
 
+              {lastResult.visualNote && (
+                <p className="answer-result__delivery">
+                  <span className="answer-result__delivery-score">
+                    {Math.round(lastResult.gazeScore)}
+                  </span>
+                  eye contact · {lastResult.visualNote}
+                </p>
+              )}
+
               <p className="answer-result__feedback">{lastResult.feedback}</p>
 
               {lastResult.transcript && (
@@ -194,6 +213,14 @@ export default function Interview() {
             !loadingNext && (
               <AnswerRecorder
                 key={question.question_id}
+                onStart={() => {
+                  setAnswering(true);
+                  camera.startSampling();
+                }}
+                onDiscard={() => {
+                  setAnswering(false);
+                  camera.stopSampling();
+                }}
                 onSubmitAudio={(blob, ext) => {
                   setLastSubmissionWasSpoken(true);
                   handleSpokenAnswer(blob, ext);
@@ -221,6 +248,8 @@ export default function Interview() {
         </section>
 
         <aside className="interview-side">
+          <CameraPanel camera={camera} recording={answering} />
+
           <div className="interview-panel">
             <p className="interview-panel__label">Progress</p>
             <ol className="question-track">
@@ -264,13 +293,25 @@ export default function Interview() {
               </li>
               <li>
                 <span>Eye contact</span>
-                <span className="signal-list__value">—</span>
+                <span className="signal-list__value">
+                  {lastVisual?.gaze_score != null ? `${Math.round(lastVisual.gaze_score)}%` : "—"}
+                </span>
+              </li>
+              <li>
+                <span>Posture</span>
+                <span className="signal-list__value">
+                  {lastVisual?.posture_score != null
+                    ? Math.round(lastVisual.posture_score)
+                    : "—"}
+                </span>
               </li>
             </ul>
             <p className="interview-panel__hint">
-              {lastSpoken
-                ? "Eye contact and posture arrive with the camera milestone."
-                : "Speak your answer to see pace, pauses and filler words measured here."}
+              {!lastSpoken
+                ? "Speak your answer to see pace, pauses and filler words measured here."
+                : !lastVisual
+                  ? "Turn the camera on to add eye contact and posture."
+                  : "Measured from your last answer."}
             </p>
           </div>
         </aside>

@@ -13,3 +13,7 @@ pypdf==5.1.0
 python-docx==1.1.2
 httpx==0.28.1
 faster-whisper==1.2.1
+# 0.10.x rather than 1.x: the 1.x wheel for Python 3.13 ships without the
+# solutions module, and its Tasks graphs are less settled on macOS.
+mediapipe==0.10.35
+pillow==12.3.0

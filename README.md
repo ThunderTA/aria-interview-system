@@ -165,10 +165,18 @@ pages, to keep the product visually consistent.
   grades answers against a rubric; a tabular Q-learning policy moves the
   difficulty up or down based on recent scores.
 
-**Not built yet:** camera/visual analysis (`cv_analysis.py` — eye contact,
-expression, posture) and the WebSocket streaming loop for live transcript
-display. The Visual score on the report stays empty rather than being
-guessed at. PDF export is also outstanding.
+- **Visual analysis** — with the camera on, frames are sampled at ~1 fps while
+  the candidate answers and scored by MediaPipe for eye contact, expression
+  and head posture (`backend/app/services/cv_analysis.py`). Frames are
+  analysed and discarded; no video is stored or uploaded anywhere off the
+  machine.
+
+**Not built yet:** the WebSocket streaming loop for live transcript display
+as the candidate speaks, and PDF report export.
+
+Dimensions that weren't measured (delivery on a typed answer, visual with the
+camera off) are left out of the overall score rather than counted as zero,
+and the report says which were skipped.
 
 The resume parser is deliberately rule-based (see
 `backend/app/data/skill_taxonomy.py` and

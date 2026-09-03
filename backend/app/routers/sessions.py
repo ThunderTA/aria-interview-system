@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from bson.errors import InvalidId
 from fastapi import (
     APIRouter,
     Depends,
+    File,
     HTTPException,
     UploadFile,
     WebSocket,
@@ -17,14 +19,19 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.deps import get_current_user
 from app.db.mongodb import get_db
 from app.models.session import AnswerSubmit, SessionCreate, SessionOut, SessionStatus
-from app.services import asr, interview_service, speech_metrics
+from app.services import asr, cv_analysis, interview_service, speech_metrics
 from app.services.asr import TranscriptionError
 from app.services.llm_client import LLMUnavailableError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 # A few minutes of compressed speech; well beyond a 90-second answer.
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
+# At ~1 fps this covers a very long answer; anything beyond is redundant for
+# gaze and posture, which don't change meaningfully frame to frame.
+MAX_FRAMES_PER_ANSWER = 180
 
 
 def _oid(session_id: str) -> ObjectId:
@@ -164,17 +171,19 @@ async def submit_answer(
 async def submit_spoken_answer(
     session_id: str,
     audio: UploadFile,
+    frames: list[UploadFile] = File(default=[]),
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    """Transcribe a recorded answer, measure delivery, then score it.
+    """Transcribe a recorded answer, measure delivery and visuals, then score it.
 
     Same path as the typed endpoint once there's a transcript — the difference
-    is that a spoken answer also yields pace, pause and filler metrics, which
-    a typed one cannot.
+    is that a spoken answer also yields pace, pause and filler metrics, and
+    (when the camera was on) gaze, expression and posture.
 
-    The audio is transcribed and discarded; only the transcript and the derived
-    numbers are stored, per the proposal's "no raw audio retained" commitment.
+    Audio and frames are analysed then discarded; only the transcript and the
+    derived numbers are stored, per the proposal's "no raw media retained"
+    commitment.
     """
     user_id = str(current_user["_id"])
     session = await _get_owned_session(db, session_id, user_id, must_be_active=True)
@@ -199,8 +208,20 @@ async def submit_spoken_answer(
     metrics = speech_metrics.analyse(transcript)
     metrics["note"] = speech_metrics.describe(metrics)
 
+    # Visual analysis is best-effort: no camera, a denied permission or a
+    # failure here must not cost the candidate their answer.
+    visual = None
+    if frames:
+        try:
+            frame_bytes = [await f.read() for f in frames[:MAX_FRAMES_PER_ANSWER]]
+            visual = await cv_analysis.analyse_frames(frame_bytes)
+        except Exception:
+            logger.exception("Visual analysis failed; scoring the answer without it")
+
     try:
-        await interview_service.score_and_advance(db, session, transcript.text, delivery=metrics)
+        await interview_service.score_and_advance(
+            db, session, transcript.text, delivery=metrics, visual=visual
+        )
     except LLMUnavailableError as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
 
