@@ -90,7 +90,9 @@ async def create_session(
     }
 
     try:
-        first_question = await interview_service.build_next_question(db, doc, user_id)
+        first_question = await interview_service.build_next_question(
+            db, doc, user_id, starting_difficulty=payload.starting_difficulty
+        )
     except LLMUnavailableError as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
 

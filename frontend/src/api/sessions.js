@@ -1,7 +1,10 @@
 import apiClient from "./client";
 
-export async function createSession(role) {
-  const { data } = await apiClient.post("/sessions", { role });
+export async function createSession(role, startingDifficulty = null) {
+  const { data } = await apiClient.post("/sessions", {
+    role,
+    starting_difficulty: startingDifficulty,
+  });
   return data;
 }
 

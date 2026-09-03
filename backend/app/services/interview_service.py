@@ -62,10 +62,19 @@ async def build_next_question(
     db: AsyncIOMotorDatabase,
     session: dict,
     user_id: str,
+    starting_difficulty: int | None = None,
 ) -> dict:
-    """Generate the next question at the difficulty the RL policy recommends."""
+    """Generate the next question at the difficulty the RL policy recommends.
+
+    `starting_difficulty` only matters for the first question of a session —
+    it's the candidate's explicit choice from Setup, overriding the
+    resume-derived default. Every question after that is chosen by the RL
+    policy regardless, since the whole point of adapting is that a starting
+    guess (candidate's or the resume's) stops being the reference point once
+    there's real performance to react to.
+    """
     questions = session.get("questions", [])
-    skills, starting_difficulty = await get_candidate_context(db, user_id)
+    skills, resume_difficulty = await get_candidate_context(db, user_id)
 
     if questions:
         q_table = await load_q_table(db)
@@ -73,7 +82,7 @@ async def build_next_question(
             answered_scores(questions), questions[-1]["difficulty_level"], q_table
         )
     else:
-        difficulty = starting_difficulty
+        difficulty = starting_difficulty if starting_difficulty is not None else resume_difficulty
 
     generated = await llm_judge.generate_question(
         role=session["role"],

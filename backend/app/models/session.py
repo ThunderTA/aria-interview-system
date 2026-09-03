@@ -44,6 +44,9 @@ class QuestionAnswer(BaseModel):
 
 class SessionCreate(BaseModel):
     role: SessionRole
+    # 1 (warm-up) to 5 (hard). Omitted or null means "let ARIA decide" —
+    # the resume-derived seniority sets the starting point instead.
+    starting_difficulty: int | None = Field(default=None, ge=1, le=5)
 
 
 class AnswerSubmit(BaseModel):
