@@ -87,3 +87,31 @@ export const PolicyIcon = () => (
     <path d="M12 7.5V12l3 2" />
   </svg>
 );
+
+export const CheckCircleIcon = () => (
+  <svg {...common} width="20" height="20">
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M8.3 12.2l2.4 2.4L15.7 9" />
+  </svg>
+);
+
+export const TargetIcon = () => (
+  <svg {...common} width="20" height="20">
+    <circle cx="12" cy="12" r="8" />
+    <circle cx="12" cy="12" r="4.2" />
+    <circle cx="12" cy="12" r="0.8" fill="currentColor" />
+  </svg>
+);
+
+export const FlameIcon = () => (
+  <svg {...common} width="20" height="20">
+    <path d="M12 3.5c.8 2.6-2.4 3.6-2.4 6.3a2.4 2.4 0 0 0 4.8 0c0-.7-.3-1.3-.7-1.8.9 2.3 1.8 3.4 1.8 5.2a4.5 4.5 0 0 1-9 0c0-3.6 2.6-4.6 3-7.3.4.7.9 1 1.5.9-.3-1.1 0-2.2 1-3.3Z" />
+  </svg>
+);
+
+export const CalendarIcon = () => (
+  <svg {...common} width="20" height="20">
+    <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
+    <path d="M3.5 9.5h17M8 3v3.5M16 3v3.5" />
+  </svg>
+);

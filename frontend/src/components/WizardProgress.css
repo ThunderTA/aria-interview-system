@@ -1,0 +1,83 @@
+.wizard-progress {
+  display: flex;
+  align-items: flex-start;
+  list-style: none;
+  margin: 0 0 var(--space-8);
+  padding: 0;
+}
+
+.wizard-progress__step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  text-align: center;
+}
+
+.wizard-progress__marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  color: var(--text-tertiary);
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  z-index: 1;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+
+.wizard-progress__label {
+  margin-top: var(--space-2);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.wizard-progress__line {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  width: 100%;
+  height: 1.5px;
+  background: var(--border-strong);
+  z-index: 0;
+}
+
+.wizard-progress__step--active .wizard-progress__marker {
+  border-color: var(--accent);
+  background: var(--gradient-brand);
+  color: var(--accent-ink);
+}
+
+.wizard-progress__step--active .wizard-progress__label {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.wizard-progress__step--done .wizard-progress__marker {
+  border-color: var(--signal);
+  background: var(--signal);
+  color: var(--bg);
+}
+
+.wizard-progress__step--done .wizard-progress__label {
+  color: var(--text-secondary);
+}
+
+.wizard-progress__step--done .wizard-progress__line {
+  background: var(--signal);
+}
+
+@media (max-width: 560px) {
+  .wizard-progress__label {
+    display: none;
+  }
+}

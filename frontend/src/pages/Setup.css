@@ -1,49 +1,71 @@
 .setup-shell {
-  max-width: 860px;
+  max-width: 640px;
   margin: 0 auto;
   padding: var(--space-6) var(--space-5) var(--space-8);
 }
 
-.setup-intro {
-  margin-bottom: var(--space-7);
-}
-
-.setup-intro h1 {
-  font-size: 1.9rem;
-  letter-spacing: -0.02em;
-  margin-bottom: var(--space-2);
-}
-
-.setup-section {
-  margin-bottom: var(--space-7);
+/* Wizard step */
+.wizard-step {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  animation: step-enter var(--duration-base) var(--ease-out) both;
 }
 
-.setup-section__head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+@keyframes step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.setup-section__head h2 {
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-secondary);
-}
-
-.setup-required {
-  font-size: 0.72rem;
+.wizard-step__eyebrow {
+  font-size: 0.78rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--accent-text);
-  border: 1px solid rgba(255, 176, 32, 0.4);
-  background: rgba(255, 176, 32, 0.08);
-  border-radius: var(--radius-full);
-  padding: 2px 8px;
+}
+
+.wizard-step__title {
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.wizard-step__sub {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.wizard-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-4);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.wizard-back {
+  background: none;
+  border: none;
+  padding: 0.6rem 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.wizard-back:hover {
+  color: var(--text-primary);
 }
 
 /* Resume picker */
@@ -187,14 +209,7 @@
   line-height: 1.5;
 }
 
-/* Actions */
-.setup-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  align-items: flex-start;
-}
-
+/* Buttons */
 .setup-primary-button {
   padding: 0.8rem 1.4rem;
   border: none;
@@ -215,12 +230,6 @@
 .setup-primary-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.setup-actions__hint {
-  font-size: 0.82rem;
-  color: var(--text-tertiary);
-  margin-top: calc(-1 * var(--space-2));
 }
 
 .setup-secondary-button {
@@ -244,6 +253,64 @@
   cursor: not-allowed;
 }
 
+/* Review step */
+.review-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.review-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+}
+
+.review-row + .review-row {
+  border-top: 1px solid var(--border);
+}
+
+.review-row__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin-bottom: 2px;
+}
+
+.review-row__value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.review-row__meta {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.review-row__edit {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0.4rem 0.7rem;
+  color: var(--signal-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.review-row__edit:hover {
+  background: var(--surface-hover);
+}
+
 @media (max-width: 640px) {
   .role-grid {
     grid-template-columns: 1fr;
@@ -253,11 +320,4 @@
     flex-direction: column;
     align-items: flex-start;
   }
-}
-
-.setup-difficulty__hint {
-  font-size: 0.82rem;
-  color: var(--text-tertiary);
-  margin-top: var(--space-3);
-  max-width: 56ch;
 }

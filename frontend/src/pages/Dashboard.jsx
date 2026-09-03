@@ -3,6 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { getCurrentUser } from "../api/auth";
 import { listSessions } from "../api/sessions";
 import AppHeader from "../components/AppHeader";
+import {
+  CalendarIcon,
+  CheckCircleIcon,
+  FlameIcon,
+  IconChip,
+  TargetIcon,
+} from "../components/FeatureIcons";
 import { getRole } from "../constants/roles";
 import "./Dashboard.css";
 
@@ -13,6 +20,10 @@ function initials(name) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+function firstName(name) {
+  return name?.split(" ")[0] ?? "";
 }
 
 /** Consecutive days up to today on which at least one session was completed. */
@@ -28,6 +39,12 @@ function practiceStreak(sessions) {
   }
   return streak;
 }
+
+const TODAY = new Date().toLocaleDateString(undefined, {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+});
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -59,37 +76,48 @@ export default function Dashboard() {
   const streak = practiceStreak(scored);
   // Oldest-to-newest, so the sparkline reads left to right.
   const trend = scored.slice(0, 12).reverse();
+  const best = scored.length ? Math.max(...scored.map((s) => s.overall_score)) : null;
+
+  const summary = scored.length
+    ? `You've completed ${scored.length} session${scored.length === 1 ? "" : "s"}, averaging ${averageScore}${
+        best != null ? ` — your best so far is ${Math.round(best)}` : ""
+      }.`
+    : "You haven't practised yet — your first session takes about ten minutes.";
 
   return (
     <div className="dashboard-shell">
       <AppHeader />
 
+      <div className="dashboard-header">
+        <div className="avatar avatar--lg">{user ? initials(user.name) : "…"}</div>
+        <div>
+          <p className="dashboard-header__date">{TODAY}</p>
+          <h1 className="dashboard-header__greeting">
+            Welcome back{user ? `, ${firstName(user.name)}` : ""}
+          </h1>
+          <p className="dashboard-header__summary">{summary}</p>
+        </div>
+      </div>
+
+      <section className="cta-banner">
+        <div className="cta-banner__glow" aria-hidden="true" />
+        <div className="cta-banner__body">
+          <p className="bento-tile__eyebrow">Ready when you are</p>
+          <h2>Start a mock interview</h2>
+          <p className="bento-tile__meta">
+            Pick a role, and ARIA will adapt the difficulty to how you're doing.
+          </p>
+        </div>
+        <button className="bento-cta__button" onClick={() => navigate("/setup")}>
+          Start interview →
+        </button>
+      </section>
+
       <div className="bento">
-        <section className="bento-tile bento-tile--welcome">
-          <div className="avatar">{user ? initials(user.name) : "…"}</div>
-          <div>
-            <p className="bento-tile__eyebrow">Signed in as</p>
-            <h3>{user ? user.name : "Loading..."}</h3>
-            <p className="bento-tile__meta">{user?.email}</p>
-          </div>
-        </section>
-
-        <section className="bento-tile bento-tile--cta">
-          <div>
-            <p className="bento-tile__eyebrow">Ready when you are</p>
-            <h2>Start a mock interview</h2>
-            <p className="bento-tile__meta">
-              Pick a role, and ARIA will adapt the difficulty to how you're doing.
-            </p>
-          </div>
-          <div className="bento-cta__actions">
-            <button className="bento-cta__button" onClick={() => navigate("/setup")}>
-              Start interview
-            </button>
-          </div>
-        </section>
-
         <section className="bento-tile bento-tile--stat">
+          <IconChip tint="accent">
+            <CheckCircleIcon />
+          </IconChip>
           <p className="bento-tile__eyebrow">Sessions completed</p>
           <p className={`bento-stat__value${scored.length > 0 ? " gradient-text" : " bento-stat__value--muted"}`}>
             {scored.length}
@@ -97,6 +125,9 @@ export default function Dashboard() {
         </section>
 
         <section className="bento-tile bento-tile--stat">
+          <IconChip tint="signal">
+            <TargetIcon />
+          </IconChip>
           <p className="bento-tile__eyebrow">Average score</p>
           <p className={`bento-stat__value${averageScore == null ? " bento-stat__value--muted" : " gradient-text"}`}>
             {averageScore ?? "—"}
@@ -104,9 +135,22 @@ export default function Dashboard() {
         </section>
 
         <section className="bento-tile bento-tile--stat">
+          <IconChip tint="accent">
+            <FlameIcon />
+          </IconChip>
           <p className="bento-tile__eyebrow">Practice streak</p>
           <p className={`bento-stat__value${streak === 0 ? " bento-stat__value--muted" : " gradient-text"}`}>
             {streak === 0 ? "—" : `${streak}d`}
+          </p>
+        </section>
+
+        <section className="bento-tile bento-tile--stat">
+          <IconChip tint="signal">
+            <CalendarIcon />
+          </IconChip>
+          <p className="bento-tile__eyebrow">Last session</p>
+          <p className={`bento-stat__value bento-stat__value--small${scored.length === 0 ? " bento-stat__value--muted" : ""}`}>
+            {scored.length ? new Date(scored[0].started_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
           </p>
         </section>
 
@@ -171,6 +215,7 @@ export default function Dashboard() {
                   />
                 ))}
               </div>
+              <div className="trend__baseline" aria-hidden="true" />
               <p className="bento-tile__meta">
                 Last {trend.length} sessions · newest on the right
               </p>
