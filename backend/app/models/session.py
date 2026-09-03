@@ -33,6 +33,9 @@ class QuestionAnswer(BaseModel):
     feedback_text: str | None = None
     # Rubric breakdown behind content_score (each 0-10), from the LLM judge.
     rubric: dict[str, int] | None = None
+    # Pace/filler/pause sub-scores behind delivery_score; spoken answers only.
+    delivery_breakdown: dict[str, float] | None = None
+    delivery_note: str | None = None
     answered_at: datetime | None = None
 
 

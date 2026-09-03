@@ -95,6 +95,7 @@ async def score_and_advance(
     db: AsyncIOMotorDatabase,
     session: dict,
     transcript: str,
+    delivery: dict | None = None,
 ) -> dict:
     """Score the current question's answer and learn from the outcome.
 
@@ -123,6 +124,18 @@ async def score_and_advance(
             "answered_at": datetime.now(timezone.utc),
         }
     )
+    # Present only for spoken answers; typed ones have no delivery to measure.
+    if delivery:
+        current.update(
+            {
+                "wpm": delivery["wpm"],
+                "pause_count": delivery["pause_count"],
+                "filler_count": delivery["filler_count"],
+                "delivery_score": delivery["delivery_score"],
+                "delivery_breakdown": delivery["delivery_breakdown"],
+                "delivery_note": delivery["note"],
+            }
+        )
 
     if previous_difficulty is not None:
         await _learn_from_turn(

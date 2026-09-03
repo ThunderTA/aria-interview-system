@@ -60,6 +60,15 @@ design, see [`docs/architecture.md`](docs/architecture.md).
 - Node.js 20+
 - MongoDB running locally (e.g. via MongoDB Compass / Community Server),
   reachable at `mongodb://localhost:27017` by default
+- [Ollama](https://ollama.com) for the local LLM — `brew install ollama`,
+  then `ollama serve` and `ollama pull qwen2.5:7b` (~4.7 GB, one time)
+
+Whisper needs no separate install: `faster-whisper` comes from
+`requirements.txt` and bundles its own media decoding, so there is no system
+ffmpeg dependency. The speech model downloads itself on first use.
+
+Everything runs on your machine — no API keys, no per-interview cost, and
+the app works with no internet connection once the models are pulled.
 
 ## Setup
 
@@ -145,18 +154,21 @@ pages, to keep the product visually consistent.
 **All 6 UI screens exist:** Login, Signup, Dashboard (bento grid), Setup
 (resume upload + role selection), Interview, and Report.
 
-**Not built yet:** the AI engines. The session endpoints and the WebSocket
-interview loop are scaffolded with correct route signatures and Pydantic
-models but return `501 Not Implemented`, each with a `TODO` pointing at the
-relevant module in `backend/app/services/` (`asr.py`, `llm_judge.py`,
-`rl_engine.py`, `cv_analysis.py`).
+- **Spoken answers** — the candidate speaks; the browser records, the backend
+  transcribes locally with faster-whisper, and the same scoring path runs.
+  Audio is transcribed then discarded; only the transcript and derived
+  numbers are stored.
+- **Delivery analysis** — speaking pace, long pauses and filler words, all
+  derived from Whisper's word-level timings, combined into a delivery score
+  (`backend/app/services/speech_metrics.py`).
+- **Adaptive questioning** — an LLM generates role-specific questions and
+  grades answers against a rubric; a tabular Q-learning policy moves the
+  difficulty up or down based on recent scores.
 
-Because of that, the Interview and Report screens run in a clearly-labelled
-**Preview mode** — they show the real layout and interactions, but nothing
-is recorded, transcribed, or scored yet, and no fake scores are displayed.
-Next build steps per the project timeline: STT integration, LLM feedback
-engine, RL difficulty engine, CV analysis, session history (see the Gantt
-chart in the project proposal).
+**Not built yet:** camera/visual analysis (`cv_analysis.py` — eye contact,
+expression, posture) and the WebSocket streaming loop for live transcript
+display. The Visual score on the report stays empty rather than being
+guessed at. PDF export is also outstanding.
 
 The resume parser is deliberately rule-based (see
 `backend/app/data/skill_taxonomy.py` and

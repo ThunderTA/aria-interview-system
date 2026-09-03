@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import AnswerRecorder from "../components/AnswerRecorder";
 import AppHeader from "../components/AppHeader";
 import Notice from "../components/Notice";
 import ScoringProgress from "../components/ScoringProgress";
@@ -8,6 +9,7 @@ import {
   endSession,
   fetchNextQuestion,
   submitAnswer,
+  submitSpokenAnswer,
 } from "../api/sessions";
 import { getRole } from "../constants/roles";
 import "./Interview.css";
@@ -20,12 +22,11 @@ export default function Interview() {
   const location = useLocation();
 
   const [session, setSession] = useState(location.state?.session ?? null);
-  const [answer, setAnswer] = useState("");
   const [scoring, setScoring] = useState(false);
   const [loadingNext, setLoadingNext] = useState(false);
   const [error, setError] = useState(null);
   const [lastResult, setLastResult] = useState(null);
-  const answerRef = useRef(null);
+  const [lastSubmissionWasSpoken, setLastSubmissionWasSpoken] = useState(false);
 
   // Reached directly without going through Setup — there's no session to run.
   useEffect(() => {
@@ -39,13 +40,16 @@ export default function Interview() {
   const question = index >= 0 ? session.questions[index] : null;
   const answeredCount = session.questions.filter((q) => q.content_score != null).length;
   const isLastAnswered = index < 0;
+  // Most recent answer that carried delivery metrics, i.e. was spoken.
+  const lastSpoken = [...session.questions].reverse().find((q) => q.wpm != null);
 
-  const handleSubmit = async () => {
-    if (!answer.trim() || scoring) return;
+  /** Runs an answer through scoring, then queues the next question. */
+  const runSubmission = async (submit) => {
+    if (scoring) return;
     setScoring(true);
     setError(null);
     try {
-      const scoredSession = await submitAnswer(session.id, answer.trim());
+      const scoredSession = await submit();
       const justScored = scoredSession.questions[index];
 
       // Show the score and feedback straight away — there's something to read
@@ -53,11 +57,13 @@ export default function Interview() {
       setLastResult({
         score: justScored.content_score,
         feedback: justScored.feedback_text,
+        transcript: justScored.transcript,
+        deliveryScore: justScored.delivery_score,
+        deliveryNote: justScored.delivery_note,
         previousDifficulty: justScored.difficulty_level,
         nextDifficulty: null,
       });
       setSession(scoredSession);
-      setAnswer("");
       setScoring(false);
 
       if (scoredSession.questions.length < TOTAL_QUESTIONS) {
@@ -69,7 +75,6 @@ export default function Interview() {
           setLastResult((prev) =>
             prev ? { ...prev, nextDifficulty: upcoming?.difficulty_level ?? null } : prev
           );
-          answerRef.current?.focus();
         } catch (err) {
           setError(
             err.response?.data?.detail ||
@@ -84,6 +89,12 @@ export default function Interview() {
       setScoring(false);
     }
   };
+
+  const handleSpokenAnswer = (blob, extension) =>
+    runSubmission(() => submitSpokenAnswer(session.id, blob, extension));
+
+  const handleTypedAnswer = (text) =>
+    runSubmission(() => submitAnswer(session.id, text));
 
   const handleFinish = async () => {
     setScoring(true);
@@ -151,45 +162,48 @@ export default function Interview() {
                     )}
                 </span>
               </div>
+
+              {lastResult.deliveryNote && (
+                <p className="answer-result__delivery">
+                  <span className="answer-result__delivery-score">
+                    {Math.round(lastResult.deliveryScore)}
+                  </span>
+                  delivery · {lastResult.deliveryNote}
+                </p>
+              )}
+
               <p className="answer-result__feedback">{lastResult.feedback}</p>
+
+              {lastResult.transcript && (
+                <details className="answer-result__transcript">
+                  {/* Candidates should be able to check what was actually heard —
+                      a mis-transcription would otherwise look like a bad score. */}
+                  <summary>What ARIA heard</summary>
+                  <p>{lastResult.transcript}</p>
+                </details>
+              )}
             </div>
           )}
 
           {error && <Notice title="Something went wrong.">{error}</Notice>}
 
           {scoring ? (
-            <ScoringProgress />
+            <ScoringProgress spoken={lastSubmissionWasSpoken} />
           ) : (
             !isLastAnswered &&
             !loadingNext && (
-              <div className="answer-box">
-                <label className="interview-panel__label" htmlFor="answer">
-                  Your answer
-                </label>
-                <textarea
-                  id="answer"
-                  ref={answerRef}
-                  className="answer-input"
-                  rows={7}
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  placeholder="Answer as you would out loud — a few sentences is enough."
-                  disabled={scoring}
-                />
-                <div className="answer-box__foot">
-                  <span className="answer-box__count">
-                    {answer.trim() ? `${answer.trim().split(/\s+/).length} words` : " "}
-                  </span>
-                  <button
-                    type="button"
-                    className="interview-submit"
-                    onClick={handleSubmit}
-                    disabled={!answer.trim() || scoring}
-                  >
-                    Submit answer
-                  </button>
-                </div>
-              </div>
+              <AnswerRecorder
+                key={question.question_id}
+                onSubmitAudio={(blob, ext) => {
+                  setLastSubmissionWasSpoken(true);
+                  handleSpokenAnswer(blob, ext);
+                }}
+                onSubmitText={(text) => {
+                  setLastSubmissionWasSpoken(false);
+                  handleTypedAnswer(text);
+                }}
+                disabled={scoring}
+              />
             )
           )}
 
@@ -228,15 +242,25 @@ export default function Interview() {
           </div>
 
           <div className="interview-panel">
-            <p className="interview-panel__label">Not yet measured</p>
+            <p className="interview-panel__label">Last answer</p>
             <ul className="signal-list">
               <li>
                 <span>Speaking pace</span>
-                <span className="signal-list__value">—</span>
+                <span className="signal-list__value">
+                  {lastSpoken?.wpm != null ? `${Math.round(lastSpoken.wpm)} wpm` : "—"}
+                </span>
               </li>
               <li>
                 <span>Filler words</span>
-                <span className="signal-list__value">—</span>
+                <span className="signal-list__value">
+                  {lastSpoken?.filler_count != null ? lastSpoken.filler_count : "—"}
+                </span>
+              </li>
+              <li>
+                <span>Long pauses</span>
+                <span className="signal-list__value">
+                  {lastSpoken?.pause_count != null ? lastSpoken.pause_count : "—"}
+                </span>
               </li>
               <li>
                 <span>Eye contact</span>
@@ -244,8 +268,9 @@ export default function Interview() {
               </li>
             </ul>
             <p className="interview-panel__hint">
-              Delivery and visual signals need the speech and CV milestones. Content scoring is
-              live.
+              {lastSpoken
+                ? "Eye contact and posture arrive with the camera milestone."
+                : "Speak your answer to see pace, pauses and filler words measured here."}
             </p>
           </div>
         </aside>

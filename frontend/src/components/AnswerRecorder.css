@@ -1,0 +1,188 @@
+.recorder {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-5);
+}
+
+/* Idle */
+.recorder__start {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.8rem 1.4rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--gradient-brand);
+  color: var(--accent-ink);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.recorder__start:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -8px rgba(255, 176, 32, 0.5);
+}
+
+.recorder__start:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.recorder__mic {
+  width: 11px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.recorder__mic::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 4px;
+  background: currentColor;
+}
+
+.recorder__hint,
+.recorder__error {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  max-width: 52ch;
+}
+
+.recorder__error {
+  color: var(--danger);
+}
+
+.mode-switch {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--signal);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.mode-switch:hover {
+  text-decoration: underline;
+}
+
+/* Recording */
+.recorder__live {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.recorder__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  box-shadow: 0 0 10px var(--danger);
+  animation: recorder-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes recorder-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.recorder__time {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.recorder__status {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.recorder__wave {
+  --level: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  height: 56px;
+}
+
+.recorder__wave span {
+  flex: 1;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(180deg, var(--accent), var(--signal));
+  /* --level is updated per frame by useAudioRecorder; --falloff is fixed per
+     bar so the centre of the waveform reacts most. Scaled rather than resized:
+     transforms are composited, so this never triggers layout. */
+  transform: scaleY(min(1, 0.06 + var(--level) * (0.35 + var(--falloff) * 0.65)));
+  transform-origin: center;
+  /* Short transition so the bars track the voice without visible stepping. */
+  transition: transform 90ms linear;
+}
+
+.recorder__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.recorder__stop {
+  padding: 0.7rem 1.3rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--gradient-brand);
+  color: var(--accent-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.recorder__cancel {
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.recorder__cancel:hover {
+  color: var(--text-primary);
+  border-color: var(--text-tertiary);
+}
+
+/* Typed mode */
+.answer-box__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.answer-box__hint {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}

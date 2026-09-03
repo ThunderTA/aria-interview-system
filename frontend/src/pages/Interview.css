@@ -338,3 +338,43 @@
   0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }
 }
+
+.answer-result__delivery {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.answer-result__delivery-score {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.answer-result__transcript {
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+
+.answer-result__transcript summary {
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.answer-result__transcript summary:hover {
+  color: var(--text-secondary);
+}
+
+.answer-result__transcript p {
+  margin-top: var(--space-2);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  font-style: italic;
+}

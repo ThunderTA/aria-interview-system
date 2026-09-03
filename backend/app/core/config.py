@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     llm_model: str = "qwen2.5:7b"
     llm_timeout_seconds: float = 120.0
 
+    # Speech-to-text. Runs locally via faster-whisper; no API key, no upload.
+    # "small" over "base" because transcription errors feed straight into the
+    # LLM's score — a misheard technical term costs the candidate real marks.
+    whisper_model: str = "small"
+    whisper_compute_type: str = "int8"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @property

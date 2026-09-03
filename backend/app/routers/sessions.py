@@ -1,17 +1,30 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.deps import get_current_user
 from app.db.mongodb import get_db
 from app.models.session import AnswerSubmit, SessionCreate, SessionOut, SessionStatus
-from app.services import interview_service
+from app.services import asr, interview_service, speech_metrics
+from app.services.asr import TranscriptionError
 from app.services.llm_client import LLMUnavailableError
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
+
+# A few minutes of compressed speech; well beyond a 90-second answer.
+MAX_AUDIO_BYTES = 25 * 1024 * 1024
 
 
 def _oid(session_id: str) -> ObjectId:
@@ -138,6 +151,56 @@ async def submit_answer(
 
     try:
         await interview_service.score_and_advance(db, session, payload.transcript)
+    except LLMUnavailableError as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+
+    await db.sessions.update_one(
+        {"_id": session["_id"]}, {"$set": {"questions": session["questions"]}}
+    )
+    return _to_out(session)
+
+
+@router.post("/{session_id}/answer/audio", response_model=SessionOut)
+async def submit_spoken_answer(
+    session_id: str,
+    audio: UploadFile,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """Transcribe a recorded answer, measure delivery, then score it.
+
+    Same path as the typed endpoint once there's a transcript — the difference
+    is that a spoken answer also yields pace, pause and filler metrics, which
+    a typed one cannot.
+
+    The audio is transcribed and discarded; only the transcript and the derived
+    numbers are stored, per the proposal's "no raw audio retained" commitment.
+    """
+    user_id = str(current_user["_id"])
+    session = await _get_owned_session(db, session_id, user_id, must_be_active=True)
+
+    current = session["questions"][-1]
+    if current.get("content_score") is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "This question has already been answered.")
+
+    raw = await audio.read()
+    if len(raw) > MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            f"Recording is too long (max {MAX_AUDIO_BYTES // (1024 * 1024)} MB).",
+        )
+
+    suffix = Path(audio.filename or "answer.webm").suffix or ".webm"
+    try:
+        transcript = await asr.transcribe(raw, suffix=suffix)
+    except TranscriptionError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+
+    metrics = speech_metrics.analyse(transcript)
+    metrics["note"] = speech_metrics.describe(metrics)
+
+    try:
+        await interview_service.score_and_advance(db, session, transcript.text, delivery=metrics)
     except LLMUnavailableError as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
 

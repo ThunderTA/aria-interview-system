@@ -16,6 +16,16 @@ export async function submitAnswer(sessionId, transcript) {
   return data;
 }
 
+export async function submitSpokenAnswer(sessionId, blob, extension = "webm") {
+  const form = new FormData();
+  form.append("audio", blob, `answer.${extension}`);
+  // Transcription plus scoring on a local model; same generous ceiling as text.
+  const { data } = await apiClient.post(`/sessions/${sessionId}/answer/audio`, form, {
+    timeout: 240000,
+  });
+  return data;
+}
+
 export async function fetchNextQuestion(sessionId) {
   const { data } = await apiClient.post(`/sessions/${sessionId}/next`, null, { timeout: 180000 });
   return data;
