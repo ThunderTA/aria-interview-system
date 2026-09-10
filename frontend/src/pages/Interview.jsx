@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AnswerRecorder from "../components/AnswerRecorder";
 import AppHeader from "../components/AppHeader";
 import CameraPanel from "../components/CameraPanel";
+import ConfirmDialog from "../components/ConfirmDialog";
 import Notice from "../components/Notice";
 import ScoringProgress from "../components/ScoringProgress";
 import useCamera from "../hooks/useCamera";
@@ -15,6 +16,7 @@ import {
 } from "../api/sessions";
 import { difficultyLabel } from "../constants/difficulty";
 import { getRole } from "../constants/roles";
+import { MIN_ANSWERED_FOR_HISTORY } from "../constants/session";
 import "./Interview.css";
 
 const TOTAL_QUESTIONS = 5;
@@ -30,12 +32,33 @@ export default function Interview() {
   const [lastResult, setLastResult] = useState(null);
   const [lastSubmissionWasSpoken, setLastSubmissionWasSpoken] = useState(false);
   const [answering, setAnswering] = useState(false);
+  // Holds the "actually navigate now" callback while the leave-confirmation
+  // is open; null means the dialog is closed.
+  const [pendingLeave, setPendingLeave] = useState(null);
+  const [leaving, setLeaving] = useState(false);
   const camera = useCamera();
+  // Once the session has been explicitly ended (finish, or a confirmed
+  // leave), further navigation shouldn't re-prompt — it's already settled.
+  const settledRef = useRef(false);
 
   // Reached directly without going through Setup — there's no session to run.
   useEffect(() => {
     if (!session) navigate("/setup", { replace: true });
   }, [session, navigate]);
+
+  // A native prompt as a backstop for tab close/refresh/typed-URL navigation,
+  // which in-app navigation guarding can't intercept. Browsers show their own
+  // generic text regardless of what's set here — that's a platform security
+  // restriction, not something stylable.
+  useEffect(() => {
+    if (!session || settledRef.current) return;
+    const handler = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [session]);
 
   if (!session) return null;
 
@@ -44,6 +67,30 @@ export default function Interview() {
   const question = index >= 0 ? session.questions[index] : null;
   const answeredCount = session.questions.filter((q) => q.content_score != null).length;
   const isLastAnswered = index < 0;
+
+  /** Every AppHeader-triggered navigation (logo, back link, logout) comes through here. */
+  const handleNavigateAttempt = (proceed) => {
+    if (settledRef.current) {
+      proceed();
+      return;
+    }
+    setPendingLeave(() => proceed);
+  };
+
+  const confirmLeave = async () => {
+    setLeaving(true);
+    try {
+      await endSession(session.id);
+    } catch {
+      // Best-effort: a failed end-call must not trap the candidate on the
+      // page — they're already trying to leave.
+    }
+    settledRef.current = true;
+    setLeaving(false);
+    const proceed = pendingLeave;
+    setPendingLeave(null);
+    proceed?.();
+  };
   // Most recent answer that carried delivery metrics, i.e. was spoken.
   const lastSpoken = [...session.questions].reverse().find((q) => q.wpm != null);
   const lastVisual = [...session.questions].reverse().find((q) => q.gaze_score != null);
@@ -110,7 +157,16 @@ export default function Interview() {
     setScoring(true);
     try {
       const ended = await endSession(session.id);
-      navigate("/report", { state: { sessionId: ended.id } });
+      settledRef.current = true;
+      if (ended.status === "completed") {
+        navigate("/report", { state: { sessionId: ended.id } });
+      } else {
+        // Fewer than MIN_ANSWERED_FOR_HISTORY questions were answered — the
+        // backend discarded it rather than creating a near-empty report.
+        navigate("/dashboard", {
+          state: { notice: `Only ${answeredCount} question${answeredCount === 1 ? "" : "s"} answered, so this session wasn't saved.` },
+        });
+      }
     } catch (err) {
       setError(err.response?.data?.detail || "Could not finish the session.");
       setScoring(false);
@@ -119,7 +175,11 @@ export default function Interview() {
 
   return (
     <div className="interview-shell">
-      <AppHeader backTo="/dashboard" backLabel="Dashboard" />
+      <AppHeader
+        backTo="/dashboard"
+        backLabel="Dashboard"
+        onNavigateAttempt={handleNavigateAttempt}
+      />
 
       <div className="interview-grid">
         <section className="interview-main">
@@ -316,6 +376,33 @@ export default function Interview() {
           </div>
         </aside>
       </div>
+
+      <ConfirmDialog
+        open={pendingLeave != null}
+        title="Leave this interview?"
+        confirmLabel={
+          leaving ? "Leaving…" : answeredCount >= MIN_ANSWERED_FOR_HISTORY ? "Leave & save" : "Leave without saving"
+        }
+        cancelLabel="Keep going"
+        tone={answeredCount >= MIN_ANSWERED_FOR_HISTORY ? "neutral" : "danger"}
+        busy={leaving}
+        onConfirm={confirmLeave}
+        onCancel={() => setPendingLeave(null)}
+      >
+        {answeredCount >= MIN_ANSWERED_FOR_HISTORY ? (
+          <p>
+            You've answered <strong>{answeredCount} questions</strong>. Leaving now saves this
+            session to your history — you can review the report anytime, but you won't be able to
+            continue answering.
+          </p>
+        ) : (
+          <p>
+            You've answered <strong>{answeredCount === 0 ? "no questions" : "only 1 question"}</strong>.
+            Sessions need at least {MIN_ANSWERED_FOR_HISTORY} answered questions to be saved, so
+            leaving now won't add anything to your history.
+          </p>
+        )}
+      </ConfirmDialog>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getCurrentUser } from "../api/auth";
 import { listSessions } from "../api/sessions";
 import AppHeader from "../components/AppHeader";
@@ -10,6 +10,7 @@ import {
   IconChip,
   TargetIcon,
 } from "../components/FeatureIcons";
+import Notice from "../components/Notice";
 import { getRole } from "../constants/roles";
 import "./Dashboard.css";
 
@@ -48,9 +49,17 @@ const TODAY = new Date().toLocaleDateString(undefined, {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(location.state?.notice ?? null);
+
+  useEffect(() => {
+    // Clear the notice out of history state once read, so refreshing the
+    // dashboard afterward doesn't bring it back.
+    if (location.state?.notice) navigate(location.pathname, { replace: true, state: {} });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     getCurrentUser()
@@ -87,6 +96,17 @@ export default function Dashboard() {
   return (
     <div className="dashboard-shell">
       <AppHeader />
+
+      {notice && (
+        <div className="dashboard-notice">
+          <Notice title="Session not saved.">
+            {notice}{" "}
+            <button type="button" className="dashboard-notice__dismiss" onClick={() => setNotice(null)}>
+              Dismiss
+            </button>
+          </Notice>
+        </div>
+      )}
 
       <div className="dashboard-header">
         <div className="avatar avatar--lg">{user ? initials(user.name) : "…"}</div>

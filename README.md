@@ -183,6 +183,23 @@ questions are grounded in it — + role selection), Interview, and Report
   analysed and discarded; no video is stored or uploaded anywhere off the
   machine.
 
+- **Session recording threshold** — a session only counts toward history
+  and the average-score calculation once at least
+  `MIN_ANSWERED_FOR_HISTORY` (2) questions have been answered.
+  `POST /sessions/{id}/end` is the single exit point regardless of how a
+  session ends — finishing normally, clicking finish early, or confirming
+  a leave — and it decides completed-vs-discarded itself based on that
+  count, so no caller has to. A discarded session keeps no scores and
+  never appears in the dashboard's history or trend.
+
+- **Leave confirmation** — navigating away from an in-progress interview
+  (the logo, the Dashboard link, or Log out, all via `AppHeader`'s
+  `onNavigateAttempt`) shows a confirmation dialog naming the actual
+  consequence — "saves to history" above the threshold, "won't be saved"
+  below it — rather than a generic warning. A `beforeunload` listener is
+  a backstop for tab close/refresh, which in-app navigation guarding can't
+  intercept.
+
 **Not built yet:** the WebSocket streaming loop for live transcript display
 as the candidate speaks, and PDF report export.
 

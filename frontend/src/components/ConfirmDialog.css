@@ -1,0 +1,103 @@
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: rgba(20, 22, 28, 0.4);
+  backdrop-filter: blur(2px);
+  animation: confirm-fade var(--duration-fast) var(--ease-out) both;
+}
+
+@keyframes confirm-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.confirm-dialog {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px -20px rgba(20, 22, 28, 0.35);
+  animation: confirm-rise var(--duration-base) var(--ease-out) both;
+}
+
+@keyframes confirm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.confirm-dialog h2 {
+  font-size: 1.2rem;
+  margin-bottom: var(--space-3);
+}
+
+.confirm-dialog__body {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-5);
+}
+
+.confirm-dialog__body strong {
+  color: var(--text-primary);
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.confirm-dialog__cancel {
+  padding: 0.6rem 1.1rem;
+  background: var(--gradient-brand);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--accent-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm-dialog__cancel:disabled,
+.confirm-dialog__confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirm-dialog__confirm {
+  padding: 0.6rem 1.1rem;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.confirm-dialog__confirm:hover {
+  color: var(--text-primary);
+  border-color: var(--text-tertiary);
+}
+
+.confirm-dialog__confirm--danger:hover {
+  color: var(--danger-text);
+  border-color: var(--danger);
+}

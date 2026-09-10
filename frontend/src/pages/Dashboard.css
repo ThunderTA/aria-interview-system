@@ -379,3 +379,19 @@
 .trend__bar:hover {
   opacity: 1;
 }
+
+.dashboard-notice {
+  margin-bottom: var(--space-5);
+}
+
+.dashboard-notice__dismiss {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: var(--space-2);
+  color: var(--signal-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+}

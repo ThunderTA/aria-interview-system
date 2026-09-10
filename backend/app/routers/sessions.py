@@ -268,7 +268,17 @@ async def end_session(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    """Finalise a session and compute its aggregate scores."""
+    """Finalise a session — the single exit point, whichever way it's reached.
+
+    Ending is the same call whether the candidate finished all questions,
+    clicked finish early, or left the page after confirming: the caller never
+    has to decide completed-vs-discarded itself, this endpoint does, based on
+    how many questions actually got answered. Fewer than
+    MIN_ANSWERED_FOR_HISTORY and the session is marked discarded rather than
+    completed — no aggregates computed, no summary generated, and it stays
+    out of history and the average-score calculation (both key off
+    overall_score being set, which discarded sessions never get).
+    """
     session = await _get_owned_session(db, session_id, str(current_user["_id"]))
 
     # Drop a trailing unanswered question so it doesn't distort the report.
@@ -276,13 +286,22 @@ async def end_session(
     if questions and questions[-1].get("content_score") is None:
         questions = questions[:-1]
 
-    updates = {
-        **interview_service.compute_aggregates(questions),
-        **await interview_service.summarise(session["role"], questions),
-        "questions": questions,
-        "status": SessionStatus.completed.value,
-        "ended_at": datetime.now(timezone.utc),
-    }
+    answered_count = len(interview_service.answered_scores(questions))
+    if answered_count >= interview_service.MIN_ANSWERED_FOR_HISTORY:
+        updates = {
+            **interview_service.compute_aggregates(questions),
+            **await interview_service.summarise(session["role"], questions),
+            "questions": questions,
+            "status": SessionStatus.completed.value,
+            "ended_at": datetime.now(timezone.utc),
+        }
+    else:
+        updates = {
+            "questions": questions,
+            "status": SessionStatus.discarded.value,
+            "ended_at": datetime.now(timezone.utc),
+        }
+
     await db.sessions.update_one({"_id": session["_id"]}, {"$set": updates})
     return _to_out({**session, **updates})
 

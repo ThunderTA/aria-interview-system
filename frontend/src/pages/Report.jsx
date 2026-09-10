@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
+import { EyeIcon, IconChip, MicIcon, ScoreIcon, TargetIcon } from "../components/FeatureIcons";
 import Notice from "../components/Notice";
 import { getReport } from "../api/sessions";
 import { getRole } from "../constants/roles";
@@ -11,6 +12,13 @@ const RUBRIC_LABELS = {
   depth: "Depth",
   relevance: "Relevance",
   clarity: "Clarity",
+};
+
+const TILE_ICONS = {
+  Overall: { icon: TargetIcon, tint: "accent" },
+  Content: { icon: ScoreIcon, tint: "signal" },
+  Delivery: { icon: MicIcon, tint: "accent" },
+  Visual: { icon: EyeIcon, tint: "signal" },
 };
 
 export default function Report() {
@@ -69,28 +77,41 @@ export default function Report() {
     <div className="report-shell">
       <AppHeader backTo="/dashboard" backLabel="Dashboard" />
 
-      <div className="report-intro">
-        <h1>Session report</h1>
-        <p>
-          {role.label} · {answered.length} question{answered.length === 1 ? "" : "s"} answered ·{" "}
-          {new Date(session.started_at).toLocaleDateString()}
-        </p>
+      <div className="report-header">
+        <span className="report-header__badge">{role.short}</span>
+        <div>
+          <h1 className="report-header__title">Session report</h1>
+          <p className="report-header__meta">
+            {role.label} · {answered.length} question{answered.length === 1 ? "" : "s"} answered ·{" "}
+            {new Date(session.started_at).toLocaleDateString(undefined, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            })}
+          </p>
+        </div>
       </div>
 
       <div className="report-layout">
         <div className="report-main">
           <div className="score-grid">
-            {tiles.map((tile) => (
-              <section key={tile.label} className="score-tile">
-                <p className="score-tile__label">{tile.label}</p>
-                <p
-                  className={`score-tile__value${tile.value == null ? " score-tile__value--muted" : " gradient-text"}`}
-                >
-                  {tile.value == null ? "—" : Math.round(tile.value)}
-                </p>
-                <p className="score-tile__hint">{tile.hint}</p>
-              </section>
-            ))}
+            {tiles.map((tile) => {
+              const { icon: Icon, tint } = TILE_ICONS[tile.label];
+              return (
+                <section key={tile.label} className="score-tile">
+                  <IconChip tint={tint}>
+                    <Icon />
+                  </IconChip>
+                  <p className="score-tile__label">{tile.label}</p>
+                  <p
+                    className={`score-tile__value${tile.value == null ? " score-tile__value--muted" : " gradient-text"}`}
+                  >
+                    {tile.value == null ? "—" : Math.round(tile.value)}
+                  </p>
+                  <p className="score-tile__hint">{tile.hint}</p>
+                </section>
+              );
+            })}
           </div>
 
           {(session.delivery_score_avg == null || session.visual_score_avg == null) && (
@@ -195,6 +216,9 @@ export default function Report() {
           <div className="report-actions">
             <Link to="/setup" className="report-cta">
               Practise again →
+            </Link>
+            <Link to="/dashboard" className="report-cta report-cta--ghost">
+              Back to dashboard
             </Link>
           </div>
         </div>

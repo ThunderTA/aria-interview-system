@@ -24,6 +24,11 @@ logger = logging.getLogger(__name__)
 QUESTIONS_PER_SESSION = 5
 Q_TABLE_ID = "shared_policy"
 
+# A session ending with fewer answered questions than this is too thin to be
+# a meaningful data point — it gets marked discarded instead of completed, so
+# it never appears in history or counts toward the average score.
+MIN_ANSWERED_FOR_HISTORY = 2
+
 # Where a session starts, by the seniority inferred from the resume.
 STARTING_DIFFICULTY = {"intern": 2, "junior": 2, "mid": 3, "senior": 4}
 DEFAULT_DIFFICULTY = 3
