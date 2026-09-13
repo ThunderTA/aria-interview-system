@@ -25,6 +25,42 @@ class Settings(BaseSettings):
     whisper_model: str = "small"
     whisper_compute_type: str = "int8"
 
+    # Candidate identity verification (face embeddings). See
+    # app/services/face_identity.py for the models and identity_service.py for
+    # how checks become a verdict. Similarities are cosine, on SFace embeddings.
+    identity_verification_enabled: bool = True
+    # Fernet key for embeddings at rest. Empty means "derive one from
+    # jwt_secret" — fine locally, but set a dedicated key anywhere shared so
+    # rotating the JWT secret doesn't also invalidate stored references.
+    face_embedding_key: str = ""
+    identity_detection_score: float = 0.80
+    # OpenCV's published SFace threshold. A resume photo is often old, small
+    # and compressed, so this is the more forgiving of the two.
+    identity_resume_match_threshold: float = 0.363
+    # Webcam against a reference captured by the same webcam minutes earlier:
+    # conditions barely change, so this can afford to be stricter.
+    identity_camera_match_threshold: float = 0.42
+    identity_min_face_px_resume: int = 36
+    identity_min_face_px_live: int = 60
+    # A second face smaller than this fraction of the main one (a poster, a
+    # photo on the wall) is ignored rather than counted as another person.
+    identity_secondary_face_ratio: float = 0.35
+    identity_min_brightness: float = 35.0
+    identity_min_sharpness: float = 15.0
+    identity_check_interval_seconds: int = 15
+    identity_mismatch_streak_to_flag: int = 3
+    identity_multi_face_streak_to_flag: int = 2
+    identity_start_max_attempts: int = 3
+    identity_allow_continue_unmatched: bool = True
+    identity_verified_min_match_rate: float = 0.8
+    identity_min_conclusive_checks: int = 2
+    # Share of the expected periodic checks that must actually arrive; fewer
+    # means the checks were blocked or the camera was off for long stretches.
+    identity_min_check_coverage: float = 0.5
+    identity_resume_reference_ttl_days: int = 30
+    identity_session_reference_ttl_hours: int = 6
+    identity_resume_analysis_timeout_seconds: float = 30.0
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @property

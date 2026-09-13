@@ -98,6 +98,47 @@ SKILL_TAXONOMY: dict[str, dict[str, list[str]]] = {
         "Performance Management": ["performance management", "appraisal"],
         "Learning & Development": ["learning and development", "l&d", "training"],
     },
+    "data_analytics": {
+        "Statistics": ["statistics", "statistical analysis"],
+        "A/B Testing": ["a/b testing", "ab testing", "experimentation"],
+        "Data Visualization": ["data visualization", "dataviz"],
+        "Tableau": ["tableau"],
+        "Power BI": ["power bi", "powerbi"],
+        "Data Analysis": ["data analysis", "data analytics"],
+        "Excel": ["excel", "spreadsheets"],
+        "Big Data": ["spark", "hadoop", "big data"],
+    },
+    "mlops": {
+        "MLOps": ["mlops", "ml ops"],
+        "Model Deployment": ["model deployment", "model serving"],
+        "MLflow": ["mlflow"],
+        "Airflow": ["airflow"],
+        "Feature Engineering": ["feature engineering"],
+        "Model Monitoring": ["model monitoring", "model drift"],
+        "ONNX": ["onnx"],
+    },
+    "qa": {
+        "Manual Testing": ["manual testing"],
+        "Test Automation": ["test automation", "automated testing"],
+        "Selenium": ["selenium"],
+        "Cypress": ["cypress"],
+        "JUnit": ["junit"],
+        "PyTest": ["pytest", "py.test"],
+        "Postman": ["postman"],
+        "Regression Testing": ["regression testing"],
+        "Test Case Design": ["test case", "test cases", "test plan"],
+        "Bug Tracking": ["bug tracking", "defect tracking"],
+    },
+    "product": {
+        "Product Management": ["product management", "product manager"],
+        "Roadmapping": ["roadmap", "roadmapping"],
+        "User Research": ["user research", "usability testing"],
+        "Wireframing": ["wireframing", "wireframe", "figma"],
+        "Stakeholder Management": ["stakeholder management", "stakeholder"],
+        "Go-to-Market": ["go-to-market", "gtm", "go to market"],
+        "Product Analytics": ["product analytics", "amplitude", "mixpanel"],
+        "JIRA": ["jira"],
+    },
     "soft": {
         "Leadership": ["leadership", "led a team", "team lead"],
         "Communication": ["communication"],
@@ -107,10 +148,26 @@ SKILL_TAXONOMY: dict[str, dict[str, list[str]]] = {
     },
 }
 
-# Categories that signal each interview role. Used to infer which role's
-# questions a candidate should get by default.
-SDE_CATEGORIES = {"language", "frontend", "backend", "database", "ml", "devops", "cs_fundamentals"}
-HR_CATEGORIES = {"hr_domain"}
+# Category -> weight signalling how strongly a match points at each role.
+# A rarer, more role-specific category (product, qa, mlops, data_analytics,
+# hr_domain) outweighs a broad one (language, cs_fundamentals) that half of
+# all resumes will contain regardless of which role they're aiming for —
+# the same precedent the old HR-weighting rule set.
+ROLE_SIGNALS: dict[str, dict[str, float]] = {
+    "SDE": {
+        "language": 1.5,
+        "frontend": 1.5,
+        "backend": 2.0,
+        "database": 1.5,
+        "devops": 1.0,
+        "cs_fundamentals": 1.5,
+    },
+    "DS": {"ml": 2.0, "data_analytics": 3.0, "language": 0.5, "cs_fundamentals": 0.5},
+    "MLE": {"ml": 2.0, "mlops": 3.0, "devops": 1.5, "language": 0.5, "backend": 0.5},
+    "QA": {"qa": 3.0, "cs_fundamentals": 1.0, "language": 0.5},
+    "PM": {"product": 3.0, "soft": 1.5, "data_analytics": 0.5},
+    "HR": {"hr_domain": 3.0, "soft": 1.0},
+}
 
 # Seniority keywords, checked before the years-of-experience heuristic.
 LEVEL_KEYWORDS: dict[str, list[str]] = {

@@ -8,12 +8,7 @@ router. See docs/architecture.md ("Onboarding & Personalization").
 import io
 import re
 
-from app.data.skill_taxonomy import (
-    HR_CATEGORIES,
-    LEVEL_KEYWORDS,
-    SDE_CATEGORIES,
-    SKILL_TAXONOMY,
-)
+from app.data.skill_taxonomy import LEVEL_KEYWORDS, ROLE_SIGNALS, SKILL_TAXONOMY
 
 MAX_RESUME_BYTES = 5 * 1024 * 1024  # 5 MB
 
@@ -109,14 +104,23 @@ def _contains_alias(lowered_text: str, alias: str) -> bool:
 def infer_role(skills: list[dict[str, str]]) -> str:
     """Pick the interview role whose signals dominate the resume.
 
+    Each matched skill casts a weighted vote for every role that lists its
+    category as a signal (see ROLE_SIGNALS) — a rarer, more role-specific
+    category (product, qa, mlops, data_analytics, hr_domain) outweighs a
+    broad one (language, cs_fundamentals) that shows up on most resumes
+    regardless of role. Falls back to SDE when nothing matches.
+
     Returns a value matching SessionRole in app/models/session.py.
     """
-    sde_hits = sum(1 for s in skills if s["category"] in SDE_CATEGORIES)
-    hr_hits = sum(1 for s in skills if s["category"] in HR_CATEGORIES)
+    scores = {role: 0.0 for role in ROLE_SIGNALS}
+    for skill in skills:
+        for role, weights in ROLE_SIGNALS.items():
+            weight = weights.get(skill["category"])
+            if weight:
+                scores[role] += weight
 
-    # HR signals are rarer and more specific, so weight them to avoid a couple of
-    # incidental tech keywords on an HR resume flipping the result to SDE.
-    return "HR" if hr_hits * 3 > sde_hits else "SDE"
+    best_role, best_score = max(scores.items(), key=lambda kv: kv[1])
+    return best_role if best_score > 0 else "SDE"
 
 
 def infer_level(text: str) -> str:

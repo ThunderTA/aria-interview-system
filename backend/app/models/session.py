@@ -3,9 +3,15 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from app.models.identity import IdentitySummary
+
 
 class SessionRole(str, Enum):
     sde = "SDE"
+    data_scientist = "DS"
+    ml_engineer = "MLE"
+    qa = "QA"
+    product_manager = "PM"
     hr = "HR"
 
 
@@ -67,6 +73,8 @@ class SessionOut(BaseModel):
     delivery_score_avg: float | None = None
     visual_score_avg: float | None = None
     questions: list[QuestionAnswer] = Field(default_factory=list)
+    # Absent on sessions from before identity verification existed.
+    identity: IdentitySummary | None = None
 
 
 class SessionInDB(BaseModel):

@@ -8,6 +8,7 @@ import Notice from "../components/Notice";
 import RoleCard from "../components/RoleCard";
 import WizardProgress from "../components/WizardProgress";
 import { difficultyLabel } from "../constants/difficulty";
+import { PHOTO_MESSAGES, PHOTO_REASONS } from "../constants/identity";
 import { ROLES, getRole } from "../constants/roles";
 import "./Setup.css";
 
@@ -78,6 +79,9 @@ export default function Setup() {
   };
 
   const role = getRole(selectedRole);
+  // Absent when identity verification is switched off on the backend.
+  const photo = parsed?.photo ?? null;
+  const photoUsable = photo?.status === "usable";
 
   return (
     <div className="setup-shell">
@@ -91,8 +95,8 @@ export default function Setup() {
           <h1 className="wizard-step__title">Add your resume</h1>
           <p className="wizard-step__sub">
             ARIA tailors your questions to your actual experience, so this is required before you
-            can start. PDF or Word — only the text is used, and it's discarded from memory once
-            parsed.
+            can start. PDF or Word — the text shapes your questions, and a profile photo, if it has
+            one, is used only to confirm it's you. The file itself isn't kept.
           </p>
 
           <div
@@ -141,6 +145,20 @@ export default function Setup() {
                   </span>
                 ))}
               </div>
+              {photo && (
+                <p
+                  className={`resume-photo${photoUsable ? " resume-photo--found" : ""}`}
+                  role="status"
+                >
+                  <span className="resume-photo__dot" aria-hidden="true" />
+                  <span>
+                    {PHOTO_MESSAGES[photo.status]}
+                    {photo.status === "unusable" && PHOTO_REASONS[photo.reason] && (
+                      <> ({PHOTO_REASONS[photo.reason]})</>
+                    )}
+                  </span>
+                </p>
+              )}
             </div>
           )}
 
@@ -264,6 +282,21 @@ export default function Setup() {
                 Edit
               </button>
             </div>
+
+            {photo && (
+              <div className="review-row">
+                <div>
+                  <p className="review-row__label">Identity check</p>
+                  <p className="review-row__value">
+                    {photoUsable ? "Match with your resume photo" : "One-time camera verification"}
+                  </p>
+                  <p className="review-row__meta">
+                    Your camera is required. You'll verify before the first question, then ARIA
+                    re-checks it's still you during the interview.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {startError && <Notice title="Couldn't start the interview.">{startError}</Notice>}

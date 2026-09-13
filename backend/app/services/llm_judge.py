@@ -26,6 +26,26 @@ ROLE_BRIEFS = {
         "a software development engineer interview covering data structures, algorithms, "
         "system design, language fundamentals, databases, and practical engineering trade-offs"
     ),
+    "DS": (
+        "a data science interview covering statistics and probability, experiment design "
+        "(A/B testing), SQL and data wrangling, core machine learning concepts, and how the "
+        "candidate communicates analytical findings to a non-technical audience"
+    ),
+    "MLE": (
+        "a machine learning engineering interview covering model deployment and serving, "
+        "feature pipelines, MLOps practices, model monitoring, and the trade-offs between "
+        "model performance and production system constraints"
+    ),
+    "QA": (
+        "a QA and test engineering interview covering test case design, manual versus "
+        "automated testing strategy, bug triage and reporting, regression testing, and how "
+        "the candidate builds confidence that software is ready to ship"
+    ),
+    "PM": (
+        "a product management interview covering prioritization frameworks, product sense, "
+        "defining and moving metrics, stakeholder communication, and how the candidate scopes "
+        "and ships a feature from problem to launch"
+    ),
     "HR": (
         "an HR and behavioural interview covering motivation, teamwork, conflict handling, "
         "strengths and weaknesses, career goals, and the story behind the candidate's resume"

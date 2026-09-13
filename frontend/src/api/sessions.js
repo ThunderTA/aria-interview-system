@@ -30,6 +30,37 @@ export async function submitSpokenAnswer(sessionId, blob, extension = "webm", fr
   return data;
 }
 
+/** Start-of-interview identity check on a short burst of webcam frames. */
+export async function verifyIdentity(sessionId, frames, { continueUnmatched = false } = {}) {
+  const form = new FormData();
+  frames.forEach((frame, i) => form.append("frames", frame, `start-${i}.jpg`));
+  if (continueUnmatched) form.append("continue_unmatched", "true");
+  const { data } = await apiClient.post(`/sessions/${sessionId}/identity/verify`, form, {
+    timeout: 60000,
+  });
+  return data;
+}
+
+/** Proceed without verification — the backend only allows it while face analysis can't run. */
+export async function skipIdentity(sessionId) {
+  const { data } = await apiClient.post(`/sessions/${sessionId}/identity/skip`);
+  return data;
+}
+
+/** One periodic check. A null frame reports that the camera is off. */
+export async function checkIdentity(sessionId, frame) {
+  const form = new FormData();
+  if (frame) {
+    form.append("frame", frame, "check.jpg");
+  } else {
+    form.append("camera_off", "true");
+  }
+  const { data } = await apiClient.post(`/sessions/${sessionId}/identity/check`, form, {
+    timeout: 30000,
+  });
+  return data;
+}
+
 export async function fetchNextQuestion(sessionId) {
   const { data } = await apiClient.post(`/sessions/${sessionId}/next`, null, { timeout: 180000 });
   return data;

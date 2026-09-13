@@ -200,6 +200,22 @@ questions are grounded in it — + role selection), Interview, and Report
   a backstop for tab close/refresh, which in-app navigation guarding can't
   intercept.
 
+- **Candidate identity verification** — confirms the person interviewing is
+  the person on the resume. A profile photo in the resume (PDF or `.docx`) is
+  detected and turned into a face embedding; with no usable photo, the
+  candidate verifies once on camera instead. Either way the first question
+  stays locked until that start check passes, and a frame is re-checked every
+  15 seconds after. Single bad frames only move counters: several mismatches
+  or several multi-person frames in a row raise a quiet warning and an
+  integrity event, and the report shows the method, every count and an
+  overall verdict. Uses OpenCV's YuNet detector and SFace recognizer (cosine
+  similarity on 128-d embeddings) — no new pip dependency. Embeddings are
+  Fernet-encrypted in `identity_references` with a TTL index, never returned
+  by the API or logged; the session's copy is deleted when it ends, and
+  frames are never stored. Thresholds are in `backend/app/core/config.py`
+  (see `IDENTITY_*` in `.env.example`); logic is in
+  `backend/app/services/face_identity.py` and `identity_service.py`.
+
 **Not built yet:** the WebSocket streaming loop for live transcript display
 as the candidate speaks, and PDF report export.
 

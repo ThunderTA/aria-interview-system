@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
@@ -5,10 +7,15 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
 from pymongo import ReturnDocument
 
+from app.core.config import settings
 from app.core.deps import get_current_user
 from app.db.mongodb import get_db
 from app.models.resume import ResumeOut
+from app.services import face_identity, identity_service
+from app.services.face_identity import PhotoStatus, ResumePhoto
 from app.services.resume_parser import MAX_RESUME_BYTES, ResumeParseError, parse_resume
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/resume", tags=["resume"])
 
@@ -30,8 +37,26 @@ def _to_out(doc: dict) -> ResumeOut:
         parsed_skills=doc.get("parsed_skills", []),
         inferred_role=doc.get("inferred_role"),
         inferred_level=doc.get("inferred_level"),
+        photo=doc.get("photo"),
         uploaded_at=doc["uploaded_at"],
     )
+
+
+async def _analyse_photo(filename: str, content: bytes) -> ResumePhoto:
+    """Best-effort: a photo that can't be analysed must never block the upload.
+
+    The candidate simply verifies with their camera instead.
+    """
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(face_identity.extract_resume_photo, filename, content),
+            timeout=settings.identity_resume_analysis_timeout_seconds,
+        )
+    except (face_identity.FaceEngineUnavailable, TimeoutError):
+        return ResumePhoto(PhotoStatus.unavailable, "analysis_unavailable")
+    except Exception:
+        logger.exception("Resume photo analysis failed; falling back to camera verification")
+        return ResumePhoto(PhotoStatus.unavailable, "analysis_unavailable")
 
 
 @router.post("/upload", response_model=ResumeOut, status_code=status.HTTP_201_CREATED)
@@ -62,9 +87,13 @@ async def upload_resume(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
     user_id = str(current_user["_id"])
+    photo = (
+        await _analyse_photo(filename, content) if settings.identity_verification_enabled else None
+    )
     doc = {
         **parsed,
         "user_id": user_id,
+        "photo": photo.public() if photo else None,
         "uploaded_at": datetime.now(timezone.utc),
     }
 
@@ -72,6 +101,12 @@ async def upload_resume(
     result = await db.resumes.find_one_and_replace(
         {"user_id": user_id}, doc, upsert=True, return_document=ReturnDocument.AFTER
     )
+
+    # The previous resume's face reference must never outlive that resume.
+    if photo is not None and photo.status is PhotoStatus.usable:
+        await identity_service.store_resume_reference(db, user_id, photo.embedding)
+    else:
+        await identity_service.delete_resume_reference(db, user_id)
     return _to_out(result)
 
 

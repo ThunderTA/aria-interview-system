@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { EyeIcon, IconChip, MicIcon, ScoreIcon, TargetIcon } from "../components/FeatureIcons";
+import IdentityReport from "../components/IdentityReport";
 import Notice from "../components/Notice";
 import { getReport } from "../api/sessions";
 import { getRole } from "../constants/roles";
@@ -125,6 +126,8 @@ export default function Report() {
               Unmeasured dimensions are left out of the overall score rather than counted as zero.
             </Notice>
           )}
+
+          {session.identity?.required && <IdentityReport identity={session.identity} />}
 
           <div className="report-columns">
             <section className="report-panel">

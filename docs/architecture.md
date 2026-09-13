@@ -81,7 +81,10 @@ gets gnarly later.
 ## Database Schema (MongoDB, database name: `aria`)
 
 - **users**: `{ _id, email (unique index), password_hash, name, created_at }`
-- **resumes**: `{ _id, user_id, raw_text, parsed_skills: [...], inferred_role, inferred_level, uploaded_at }`
+- **resumes**: `{ _id, user_id, raw_text, parsed_skills: [...], inferred_role, inferred_level, photo: { status, reason }, uploaded_at }`
+  — `photo.status` is `usable | not_found | unusable | unavailable`; the face itself is never stored here.
+- **identity_references** (encrypted face embeddings, see Identity Verification below):
+  `{ _id: "resume:<user_id>" | "session:<session_id>", user_id, ciphertext, created_at, expires_at }`
 - **sessions** (core collection — questions/answers embedded, not separate):
 ```json
 {
@@ -107,12 +110,24 @@ gets gnarly later.
       "gaze_score": 0, "expression_score": 0, "posture_score": 0,
       "feedback_text": "..."
     }
-  ]
+  ],
+  "identity": {
+    "required": true,
+    "method": "resume_photo | camera",
+    "gate": "pending | verified | unmatched | unavailable",
+    "checks": 0, "matches": 0, "mismatches": 0,
+    "multiple_faces": 0, "face_not_detected": 0,
+    "events": [{ "type": "PERSISTENT_MISMATCH | MULTIPLE_PEOPLE | START_UNMATCHED | VERIFICATION_UNAVAILABLE",
+                 "started_at": "...", "ended_at": "...", "checks": 0 }],
+    "status": "verified | flagged | inconclusive | not_verified",
+    "status_reason": "..."
+  }
 }
 ```
 
 Indexes: `users.email` (unique), `sessions.user_id + started_at` (history
-list + progress dashboard queries).
+list + progress dashboard queries), `identity_references.expires_at` (TTL —
+MongoDB deletes expired embeddings itself), `identity_references.user_id`.
 
 Raw audio/video are **not stored** — only derived metrics and the text
 transcript persist, matching the proposal's safety/security claims.
@@ -137,6 +152,13 @@ transcript persist, matching the proposal's safety/security claims.
   partial transcript, live gaze/attention signal, and the next question
   when ready. This is core to the MVP (real-time is literally in the
   project name), not a stretch upgrade over a REST-per-answer flow.
+
+**Identity Verification**
+- `POST /sessions/{id}/identity/verify` — start check on 1–5 webcam frames
+  (form field `continue_unmatched` after repeated resume-photo mismatches)
+- `POST /sessions/{id}/identity/check` — one periodic frame, or `camera_off=true`
+- `POST /sessions/{id}/identity/skip` — only accepted while face analysis can't run
+- Answer and next-question endpoints return `403` until the start check is done.
 
 **Reporting & Progress**
 - `GET /sessions/{id}/report`, `GET /sessions/{id}/report/pdf`

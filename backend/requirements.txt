@@ -17,3 +17,8 @@ faster-whisper==1.2.1
 # solutions module, and its Tasks graphs are less settled on macOS.
 mediapipe==0.10.35
 pillow==12.3.0
+# Imported directly by identity verification (YuNet/SFace face models and
+# embedding encryption). Already installed via mediapipe and python-jose;
+# pinned here so neither dependency can drop them silently.
+opencv-contrib-python==5.0.0.93
+cryptography==50.0.1

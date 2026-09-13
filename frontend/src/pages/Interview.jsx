@@ -4,9 +4,11 @@ import AnswerRecorder from "../components/AnswerRecorder";
 import AppHeader from "../components/AppHeader";
 import CameraPanel from "../components/CameraPanel";
 import ConfirmDialog from "../components/ConfirmDialog";
+import IdentityGate from "../components/IdentityGate";
 import Notice from "../components/Notice";
 import ScoringProgress from "../components/ScoringProgress";
 import useCamera from "../hooks/useCamera";
+import useIdentityChecks from "../hooks/useIdentityChecks";
 import {
   currentQuestionIndex,
   endSession,
@@ -40,6 +42,35 @@ export default function Interview() {
   // Once the session has been explicitly ended (finish, or a confirmed
   // leave), further navigation shouldn't re-prompt — it's already settled.
   const settledRef = useRef(false);
+
+  // Kept apart from `session`: answer responses carry an identity snapshot
+  // from when scoring started, which a check may have superseded since.
+  const [identity, setIdentity] = useState(location.state?.session?.identity ?? null);
+  const [checksStopped, setChecksStopped] = useState(false);
+  const identityRequired = Boolean(identity?.required);
+  const gatePending = identityRequired && identity.gate === "pending";
+  const { lastCheck, paused: identityPaused } = useIdentityChecks({
+    sessionId: session?.id,
+    identity,
+    camera,
+    active:
+      Boolean(session) &&
+      identityRequired &&
+      (identity.gate === "verified" || identity.gate === "unmatched") &&
+      !checksStopped,
+    onIdentity: setIdentity,
+  });
+
+  // The camera is required when identity is verified, so ask straight away
+  // rather than making the candidate find a button first.
+  const autoStartedRef = useRef(false);
+  const startCamera = camera.start;
+  useEffect(() => {
+    if (gatePending && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      startCamera();
+    }
+  }, [gatePending, startCamera]);
 
   // Reached directly without going through Setup — there's no session to run.
   useEffect(() => {
@@ -79,6 +110,7 @@ export default function Interview() {
 
   const confirmLeave = async () => {
     setLeaving(true);
+    setChecksStopped(true);
     try {
       await endSession(session.id);
     } catch {
@@ -155,6 +187,8 @@ export default function Interview() {
 
   const handleFinish = async () => {
     setScoring(true);
+    // No check may land while the backend is finalising the identity verdict.
+    setChecksStopped(true);
     try {
       const ended = await endSession(session.id);
       settledRef.current = true;
@@ -170,6 +204,7 @@ export default function Interview() {
     } catch (err) {
       setError(err.response?.data?.detail || "Could not finish the session.");
       setScoring(false);
+      setChecksStopped(false);
     }
   };
 
@@ -181,201 +216,223 @@ export default function Interview() {
         onNavigateAttempt={handleNavigateAttempt}
       />
 
-      <div className="interview-grid">
-        <section className="interview-main">
-          <div className="interview-meta">
-            <span className="interview-chip interview-chip--role">{role.short}</span>
-            <span className="interview-chip">
-              Question {Math.min(answeredCount + 1, session.questions.length)} of{" "}
-              {isLastAnswered ? answeredCount : 5}
-            </span>
-            {question && (
-              <span className="interview-chip interview-chip--difficulty">
-                {difficultyLabel(question.difficulty_level)}
-              </span>
+      {gatePending ? (
+        <IdentityGate
+          sessionId={session.id}
+          identity={identity}
+          camera={camera}
+          onIdentityChange={setIdentity}
+        />
+      ) : (
+        <div className="interview-grid">
+          <section className="interview-main">
+            {identity?.warning && (
+              <p className="identity-warning" role="status">
+                <span className="identity-warning__dot" aria-hidden="true" />
+                {identity.warning.message}
+              </p>
             )}
-            {question?.topic && <span className="interview-chip">{question.topic}</span>}
-          </div>
 
-          {loadingNext ? (
-            <h1 className="interview-question interview-question--pending">
-              Preparing your next question<span className="dots" aria-hidden="true" />
-            </h1>
-          ) : isLastAnswered ? (
-            <div className="interview-complete">
-              <h1 className="interview-question">
-                {answeredCount >= TOTAL_QUESTIONS
-                  ? `That's all ${answeredCount} questions.`
-                  : `${answeredCount} answered.`}
-              </h1>
-              <p>Finish up to see your scored report.</p>
-            </div>
-          ) : (
-            <h1 className="interview-question">{question.text}</h1>
-          )}
-
-          {lastResult && !scoring && (
-            <div className="answer-result">
-              <div className="answer-result__head">
-                <span className="answer-result__score">{lastResult.score}</span>
-                <span className="answer-result__label">
-                  previous answer
-                  {lastResult.nextDifficulty != null &&
-                    lastResult.nextDifficulty !== lastResult.previousDifficulty && (
-                      <em>
-                        {" "}
-                        · next question{" "}
-                        {lastResult.nextDifficulty > lastResult.previousDifficulty
-                          ? "harder"
-                          : "easier"}
-                      </em>
-                    )}
+            <div className="interview-meta">
+              <span className="interview-chip interview-chip--role">{role.short}</span>
+              <span className="interview-chip">
+                Question {Math.min(answeredCount + 1, session.questions.length)} of{" "}
+                {isLastAnswered ? answeredCount : 5}
+              </span>
+              {question && (
+                <span className="interview-chip interview-chip--difficulty">
+                  {difficultyLabel(question.difficulty_level)}
                 </span>
-              </div>
-
-              {lastResult.deliveryNote && (
-                <p className="answer-result__delivery">
-                  <span className="answer-result__delivery-score">
-                    {Math.round(lastResult.deliveryScore)}
-                  </span>
-                  delivery · {lastResult.deliveryNote}
-                </p>
               )}
-
-              {lastResult.visualNote && (
-                <p className="answer-result__delivery">
-                  <span className="answer-result__delivery-score">
-                    {Math.round(lastResult.gazeScore)}
-                  </span>
-                  eye contact · {lastResult.visualNote}
-                </p>
-              )}
-
-              <p className="answer-result__feedback">{lastResult.feedback}</p>
-
-              {lastResult.transcript && (
-                <details className="answer-result__transcript">
-                  {/* Candidates should be able to check what was actually heard —
-                      a mis-transcription would otherwise look like a bad score. */}
-                  <summary>What ARIA heard</summary>
-                  <p>{lastResult.transcript}</p>
-                </details>
-              )}
+              {question?.topic && <span className="interview-chip">{question.topic}</span>}
             </div>
-          )}
 
-          {error && <Notice title="Something went wrong.">{error}</Notice>}
+            {loadingNext ? (
+              <h1 className="interview-question interview-question--pending">
+                Preparing your next question<span className="dots" aria-hidden="true" />
+              </h1>
+            ) : isLastAnswered ? (
+              <div className="interview-complete">
+                <h1 className="interview-question">
+                  {answeredCount >= TOTAL_QUESTIONS
+                    ? `That's all ${answeredCount} questions.`
+                    : `${answeredCount} answered.`}
+                </h1>
+                <p>Finish up to see your scored report.</p>
+              </div>
+            ) : (
+              <h1 className="interview-question">{question.text}</h1>
+            )}
 
-          {scoring ? (
-            <ScoringProgress spoken={lastSubmissionWasSpoken} />
-          ) : (
-            !isLastAnswered &&
-            !loadingNext && (
-              <AnswerRecorder
-                key={question.question_id}
-                onStart={() => {
-                  setAnswering(true);
-                  camera.startSampling();
-                }}
-                onDiscard={() => {
-                  setAnswering(false);
-                  camera.stopSampling();
-                }}
-                onSubmitAudio={(blob, ext) => {
-                  setLastSubmissionWasSpoken(true);
-                  handleSpokenAnswer(blob, ext);
-                }}
-                onSubmitText={(text) => {
-                  setLastSubmissionWasSpoken(false);
-                  handleTypedAnswer(text);
-                }}
-                disabled={scoring}
-              />
-            )
-          )}
+            {lastResult && !scoring && (
+              <div className="answer-result">
+                <div className="answer-result__head">
+                  <span className="answer-result__score">{lastResult.score}</span>
+                  <span className="answer-result__label">
+                    previous answer
+                    {lastResult.nextDifficulty != null &&
+                      lastResult.nextDifficulty !== lastResult.previousDifficulty && (
+                        <em>
+                          {" "}
+                          · next question{" "}
+                          {lastResult.nextDifficulty > lastResult.previousDifficulty
+                            ? "harder"
+                            : "easier"}
+                        </em>
+                      )}
+                  </span>
+                </div>
 
-          <div className="interview-controls">
-            <button
-              type="button"
-              className="interview-finish"
-              onClick={handleFinish}
-              disabled={scoring || answeredCount === 0}
-              title={answeredCount === 0 ? "Answer at least one question first" : undefined}
-            >
-              {isLastAnswered ? "See your report →" : "Finish early →"}
-            </button>
-          </div>
-        </section>
+                {lastResult.deliveryNote && (
+                  <p className="answer-result__delivery">
+                    <span className="answer-result__delivery-score">
+                      {Math.round(lastResult.deliveryScore)}
+                    </span>
+                    delivery · {lastResult.deliveryNote}
+                  </p>
+                )}
 
-        <aside className="interview-side">
-          <CameraPanel camera={camera} recording={answering} />
+                {lastResult.visualNote && (
+                  <p className="answer-result__delivery">
+                    <span className="answer-result__delivery-score">
+                      {Math.round(lastResult.gazeScore)}
+                    </span>
+                    eye contact · {lastResult.visualNote}
+                  </p>
+                )}
 
-          <div className="interview-panel">
-            <p className="interview-panel__label">Progress</p>
-            <ol className="question-track">
-              {session.questions.map((q, i) => (
-                <li
-                  key={q.question_id}
-                  className={`question-track__item${
-                    q.content_score != null ? " question-track__item--done" : ""
-                  }${i === index ? " question-track__item--current" : ""}`}
-                >
-                  <span className="question-track__index">{i + 1}</span>
-                  <span className="question-track__topic">{q.topic ?? "Question"}</span>
-                  <span className="question-track__score">
-                    {q.content_score != null ? Math.round(q.content_score) : "—"}
+                <p className="answer-result__feedback">{lastResult.feedback}</p>
+
+                {lastResult.transcript && (
+                  <details className="answer-result__transcript">
+                    {/* Candidates should be able to check what was actually heard —
+                        a mis-transcription would otherwise look like a bad score. */}
+                    <summary>What ARIA heard</summary>
+                    <p>{lastResult.transcript}</p>
+                  </details>
+                )}
+              </div>
+            )}
+
+            {error && <Notice title="Something went wrong.">{error}</Notice>}
+
+            {scoring ? (
+              <ScoringProgress spoken={lastSubmissionWasSpoken} />
+            ) : (
+              !isLastAnswered &&
+              !loadingNext && (
+                <AnswerRecorder
+                  key={question.question_id}
+                  onStart={() => {
+                    setAnswering(true);
+                    camera.startSampling();
+                  }}
+                  onDiscard={() => {
+                    setAnswering(false);
+                    camera.stopSampling();
+                  }}
+                  onSubmitAudio={(blob, ext) => {
+                    setLastSubmissionWasSpoken(true);
+                    handleSpokenAnswer(blob, ext);
+                  }}
+                  onSubmitText={(text) => {
+                    setLastSubmissionWasSpoken(false);
+                    handleTypedAnswer(text);
+                  }}
+                  disabled={scoring}
+                />
+              )
+            )}
+
+            <div className="interview-controls">
+              <button
+                type="button"
+                className="interview-finish"
+                onClick={handleFinish}
+                disabled={scoring || answeredCount === 0}
+                title={answeredCount === 0 ? "Answer at least one question first" : undefined}
+              >
+                {isLastAnswered ? "See your report →" : "Finish early →"}
+              </button>
+            </div>
+          </section>
+
+          <aside className="interview-side">
+            <CameraPanel
+              camera={camera}
+              recording={answering}
+              identity={identity}
+              lastCheck={lastCheck}
+              identityPaused={identityPaused}
+            />
+
+            <div className="interview-panel">
+              <p className="interview-panel__label">Progress</p>
+              <ol className="question-track">
+                {session.questions.map((q, i) => (
+                  <li
+                    key={q.question_id}
+                    className={`question-track__item${
+                      q.content_score != null ? " question-track__item--done" : ""
+                    }${i === index ? " question-track__item--current" : ""}`}
+                  >
+                    <span className="question-track__index">{i + 1}</span>
+                    <span className="question-track__topic">{q.topic ?? "Question"}</span>
+                    <span className="question-track__score">
+                      {q.content_score != null ? Math.round(q.content_score) : "—"}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="interview-panel">
+              <p className="interview-panel__label">Last answer</p>
+              <ul className="signal-list">
+                <li>
+                  <span>Speaking pace</span>
+                  <span className="signal-list__value">
+                    {lastSpoken?.wpm != null ? `${Math.round(lastSpoken.wpm)} wpm` : "—"}
                   </span>
                 </li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="interview-panel">
-            <p className="interview-panel__label">Last answer</p>
-            <ul className="signal-list">
-              <li>
-                <span>Speaking pace</span>
-                <span className="signal-list__value">
-                  {lastSpoken?.wpm != null ? `${Math.round(lastSpoken.wpm)} wpm` : "—"}
-                </span>
-              </li>
-              <li>
-                <span>Filler words</span>
-                <span className="signal-list__value">
-                  {lastSpoken?.filler_count != null ? lastSpoken.filler_count : "—"}
-                </span>
-              </li>
-              <li>
-                <span>Long pauses</span>
-                <span className="signal-list__value">
-                  {lastSpoken?.pause_count != null ? lastSpoken.pause_count : "—"}
-                </span>
-              </li>
-              <li>
-                <span>Eye contact</span>
-                <span className="signal-list__value">
-                  {lastVisual?.gaze_score != null ? `${Math.round(lastVisual.gaze_score)}%` : "—"}
-                </span>
-              </li>
-              <li>
-                <span>Posture</span>
-                <span className="signal-list__value">
-                  {lastVisual?.posture_score != null
-                    ? Math.round(lastVisual.posture_score)
-                    : "—"}
-                </span>
-              </li>
-            </ul>
-            <p className="interview-panel__hint">
-              {!lastSpoken
-                ? "Speak your answer to see pace, pauses and filler words measured here."
-                : !lastVisual
-                  ? "Turn the camera on to add eye contact and posture."
-                  : "Measured from your last answer."}
-            </p>
-          </div>
-        </aside>
-      </div>
+                <li>
+                  <span>Filler words</span>
+                  <span className="signal-list__value">
+                    {lastSpoken?.filler_count != null ? lastSpoken.filler_count : "—"}
+                  </span>
+                </li>
+                <li>
+                  <span>Long pauses</span>
+                  <span className="signal-list__value">
+                    {lastSpoken?.pause_count != null ? lastSpoken.pause_count : "—"}
+                  </span>
+                </li>
+                <li>
+                  <span>Eye contact</span>
+                  <span className="signal-list__value">
+                    {lastVisual?.gaze_score != null ? `${Math.round(lastVisual.gaze_score)}%` : "—"}
+                  </span>
+                </li>
+                <li>
+                  <span>Posture</span>
+                  <span className="signal-list__value">
+                    {lastVisual?.posture_score != null
+                      ? Math.round(lastVisual.posture_score)
+                      : "—"}
+                  </span>
+                </li>
+              </ul>
+              <p className="interview-panel__hint">
+                {!lastSpoken
+                  ? "Speak your answer to see pace, pauses and filler words measured here."
+                  : !lastVisual
+                    ? "Turn the camera on to add eye contact and posture."
+                    : "Measured from your last answer."}
+              </p>
+            </div>
+          </aside>
+        </div>
+      )}
 
       <ConfirmDialog
         open={pendingLeave != null}

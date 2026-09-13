@@ -19,7 +19,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.deps import get_current_user
 from app.db.mongodb import get_db
 from app.models.session import AnswerSubmit, SessionCreate, SessionOut, SessionStatus
-from app.services import asr, cv_analysis, interview_service, speech_metrics
+from app.services import asr, cv_analysis, identity_service, interview_service, speech_metrics
 from app.services.asr import TranscriptionError
 from app.services.llm_client import LLMUnavailableError
 
@@ -54,7 +54,16 @@ def _to_out(doc: dict) -> SessionOut:
         delivery_score_avg=doc.get("delivery_score_avg"),
         visual_score_avg=doc.get("visual_score_avg"),
         questions=doc.get("questions", []),
+        identity=identity_service.summary(doc["identity"]) if doc.get("identity") else None,
     )
+
+
+def _require_identity_gate(session: dict) -> None:
+    if not identity_service.gate_open(session):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Confirm your identity with your camera before answering.",
+        )
 
 
 async def _get_owned_session(
@@ -87,6 +96,7 @@ async def create_session(
         "delivery_score_avg": None,
         "visual_score_avg": None,
         "questions": [],
+        "identity": await identity_service.initial_state(db, user_id),
     }
 
     try:
@@ -131,6 +141,7 @@ async def delete_session(
     )
     if result.deleted_count == 0:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Session not found.")
+    await identity_service.delete_session_reference(db, _oid(session_id))
 
 
 @router.post("/{session_id}/answer", response_model=SessionOut)
@@ -153,6 +164,7 @@ async def submit_answer(
     """
     user_id = str(current_user["_id"])
     session = await _get_owned_session(db, session_id, user_id, must_be_active=True)
+    _require_identity_gate(session)
 
     current = session["questions"][-1]
     if current.get("content_score") is not None:
@@ -189,6 +201,7 @@ async def submit_spoken_answer(
     """
     user_id = str(current_user["_id"])
     session = await _get_owned_session(db, session_id, user_id, must_be_active=True)
+    _require_identity_gate(session)
 
     current = session["questions"][-1]
     if current.get("content_score") is not None:
@@ -246,6 +259,7 @@ async def next_question(
     """
     user_id = str(current_user["_id"])
     session = await _get_owned_session(db, session_id, user_id, must_be_active=True)
+    _require_identity_gate(session)
     questions = session["questions"]
 
     at_full_length = len(questions) >= interview_service.QUESTIONS_PER_SESSION
@@ -301,6 +315,14 @@ async def end_session(
             "status": SessionStatus.discarded.value,
             "ended_at": datetime.now(timezone.utc),
         }
+
+    # Re-read identity rather than using the copy fetched above: summarising
+    # takes seconds, and a check landing meanwhile must not be overwritten.
+    fresh = await db.sessions.find_one({"_id": session["_id"]}, {"identity": 1})
+    if fresh and fresh.get("identity"):
+        updates["identity"] = identity_service.finalise(fresh["identity"], updates["ended_at"])
+    # The verdict is kept; the face it was reached with is not.
+    await identity_service.delete_session_reference(db, session["_id"])
 
     await db.sessions.update_one({"_id": session["_id"]}, {"$set": updates})
     return _to_out({**session, **updates})
