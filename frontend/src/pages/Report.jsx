@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
+import AttentionReport from "../components/AttentionReport";
 import { EyeIcon, IconChip, MicIcon, ScoreIcon, TargetIcon } from "../components/FeatureIcons";
 import IdentityReport from "../components/IdentityReport";
 import Notice from "../components/Notice";
@@ -156,6 +157,8 @@ export default function Report() {
 
           {session.identity?.required && <IdentityReport identity={session.identity} />}
 
+          {session.attention?.checks > 0 && <AttentionReport attention={session.attention} />}
+
           <div className="report-columns">
             <section className="report-panel">
               <h2>Strengths</h2>
@@ -235,6 +238,8 @@ export default function Report() {
                         )}
                       </div>
                     )}
+
+                    {q.attention?.note && <p className="breakdown__attention">{q.attention.note}</p>}
 
                     {q.feedback_text && <p className="breakdown__feedback">{q.feedback_text}</p>}
 

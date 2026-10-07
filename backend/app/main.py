@@ -6,8 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.mongodb import close_mongo_connection, connect_to_mongo
-from app.routers import auth, conversation, health, identity, resume, sessions, speech, users
-from app.services import asr, face_identity, tts
+from app.routers import (
+    attention,
+    auth,
+    conversation,
+    health,
+    identity,
+    resume,
+    sessions,
+    speech,
+    users,
+)
+from app.services import asr, cv_analysis, face_identity, tts
 
 
 @asynccontextmanager
@@ -20,6 +30,10 @@ async def lifespan(app: FastAPI):
         warm_up_tasks.append(asyncio.create_task(face_identity.warm_up()))
     if settings.tts_enabled:
         warm_up_tasks.append(asyncio.create_task(tts.warm_up()))
+    if settings.attention_checks_enabled:
+        # The landmarker is needed within seconds of the first question, rather
+        # than only when an answer is submitted.
+        warm_up_tasks.append(asyncio.create_task(cv_analysis.warm_up()))
     yield
     for task in warm_up_tasks:
         task.cancel()
@@ -43,4 +57,5 @@ app.include_router(resume.router)
 app.include_router(sessions.router)
 app.include_router(identity.router)
 app.include_router(conversation.router)
+app.include_router(attention.router)
 app.include_router(speech.router)

@@ -7,6 +7,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import IdentityGate from "../components/IdentityGate";
 import Notice from "../components/Notice";
 import ScoringProgress from "../components/ScoringProgress";
+import useAttentionChecks from "../hooks/useAttentionChecks";
 import useCamera from "../hooks/useCamera";
 import useIdentityChecks from "../hooks/useIdentityChecks";
 import {
@@ -59,6 +60,15 @@ export default function Interview() {
       (identity.gate === "verified" || identity.gate === "unmatched") &&
       !checksStopped,
     onIdentity: setIdentity,
+  });
+
+  // Where the candidate is looking. Sampled more often than identity and kept
+  // apart from it: a glance at a second screen says nothing about who's sitting
+  // there, so it never touches the identity verdict.
+  const { attention } = useAttentionChecks({
+    sessionId: session?.id,
+    camera,
+    active: Boolean(session) && !checksStopped && !gatePending,
   });
 
   // The camera is required when identity is verified, so ask straight away
@@ -364,6 +374,7 @@ export default function Interview() {
               identity={identity}
               lastCheck={lastCheck}
               identityPaused={identityPaused}
+              attention={attention}
             />
 
             <div className="interview-panel">

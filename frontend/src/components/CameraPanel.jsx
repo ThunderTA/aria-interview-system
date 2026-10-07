@@ -1,3 +1,4 @@
+import { ATTENTION_TONES, attentionLabel } from "../constants/attention";
 import { CAMERA_REQUIRED_MESSAGES, HINT_MESSAGES } from "../constants/identity";
 import "./CameraPanel.css";
 
@@ -35,9 +36,17 @@ function identityLine(identity, lastCheck, paused) {
  * what every video-call app does, and it only affects the preview, not the
  * frames sent for analysis.
  */
-export default function CameraPanel({ camera, recording, identity, lastCheck, identityPaused }) {
+export default function CameraPanel({
+  camera,
+  recording,
+  identity,
+  lastCheck,
+  identityPaused,
+  attention,
+}) {
   const identityRequired = Boolean(identity?.required);
   const line = identityRequired ? identityLine(identity, lastCheck, identityPaused) : null;
+  const gazeTone = attention?.state ? (ATTENTION_TONES[attention.state] ?? "away") : null;
 
   return (
     <div className="interview-panel">
@@ -64,12 +73,24 @@ export default function CameraPanel({ camera, recording, identity, lastCheck, id
             <p>Camera off</p>
           </div>
         )}
+        {camera.enabled && attention?.state && (
+          <span className={`attention-badge attention-badge--${gazeTone}`}>
+            <span className="attention-badge__dot" aria-hidden="true" />
+            {attentionLabel(attention.state, attention.label)}
+          </span>
+        )}
       </div>
 
       {line && (
         <p className={`identity-line identity-line--${line.tone}`} role="status">
           <span className="identity-line__dot" aria-hidden="true" />
           {line.text}
+        </p>
+      )}
+
+      {attention?.checks > 0 && (
+        <p className="attention-line" role="status">
+          {attention.warning ?? `Eye contact ${Math.round(attention.on_camera_share)}% so far`}
         </p>
       )}
 
@@ -89,7 +110,7 @@ export default function CameraPanel({ camera, recording, identity, lastCheck, id
       <p className="interview-panel__hint">
         {identityRequired
           ? camera.enabled
-            ? `Your identity is re-checked every ${identity.check_interval_seconds} seconds, and eye contact, expression and posture are measured while you answer. Frames are analysed and discarded — nothing is recorded.`
+            ? `Your identity is re-checked every ${identity.check_interval_seconds} seconds, and where you're looking is read from the camera a few times a minute. Frames are analysed and discarded — nothing is recorded.`
             : (CAMERA_REQUIRED_MESSAGES[camera.errorCode] ?? "Your camera is required for identity checks.") +
               " While it's off, checks are recorded as face not detected."
           : (camera.error ??

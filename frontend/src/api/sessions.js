@@ -80,6 +80,16 @@ export async function checkIdentity(sessionId, frame) {
   return data;
 }
 
+/** One frame for the live attention readout: where the candidate is looking. */
+export async function checkAttention(sessionId, frame) {
+  const form = new FormData();
+  form.append("frame", frame, "attention.jpg");
+  const { data } = await apiClient.post(`/sessions/${sessionId}/attention/check`, form, {
+    timeout: 20000,
+  });
+  return data;
+}
+
 export async function fetchNextQuestion(sessionId) {
   const { data } = await apiClient.post(`/sessions/${sessionId}/next`, null, { timeout: 180000 });
   return data;

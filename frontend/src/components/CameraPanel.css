@@ -75,6 +75,50 @@
   border-bottom: 5px solid transparent;
 }
 
+/* Live gaze readout, drawn over the preview so it's visible at a glance. */
+.attention-badge {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 16px);
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(20, 22, 28, 0.74);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attention-badge__dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--signal);
+}
+
+.attention-badge--away .attention-badge__dot {
+  background: var(--accent);
+}
+
+.attention-badge--warn .attention-badge__dot {
+  background: var(--danger);
+}
+
+.attention-line {
+  margin-bottom: var(--space-3);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
 .identity-line {
   display: flex;
   align-items: center;

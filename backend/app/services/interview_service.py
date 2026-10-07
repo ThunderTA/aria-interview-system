@@ -185,6 +185,7 @@ async def score_and_advance(
                 "posture_score": visual["posture_score"],
                 "face_presence": visual["face_presence"],
                 "visual_note": visual["note"],
+                "attention": visual.get("attention"),
             }
         )
 

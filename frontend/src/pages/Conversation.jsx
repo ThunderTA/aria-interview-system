@@ -5,6 +5,7 @@ import CameraPanel from "../components/CameraPanel";
 import ConfirmDialog from "../components/ConfirmDialog";
 import IdentityGate from "../components/IdentityGate";
 import Notice from "../components/Notice";
+import useAttentionChecks from "../hooks/useAttentionChecks";
 import useAudioRecorder from "../hooks/useAudioRecorder";
 import useCamera from "../hooks/useCamera";
 import useIdentityChecks from "../hooks/useIdentityChecks";
@@ -105,6 +106,15 @@ export default function Conversation() {
       (identity.gate === "verified" || identity.gate === "unmatched") &&
       !checksStopped,
     onIdentity: setIdentity,
+  });
+
+  // Where the candidate is looking. Sampled more often than identity and kept
+  // apart from it: a glance at a second screen says nothing about who's sitting
+  // there, so it never touches the identity verdict.
+  const { attention } = useAttentionChecks({
+    sessionId: session?.id,
+    camera,
+    active: Boolean(session) && !checksStopped && !gatePending,
   });
 
   const autoStartedRef = useRef(false);
@@ -540,6 +550,7 @@ export default function Conversation() {
               identity={identity}
               lastCheck={lastCheck}
               identityPaused={identityPaused}
+              attention={attention}
             />
 
             <div className="interview-panel">

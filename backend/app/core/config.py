@@ -71,6 +71,15 @@ class Settings(BaseSettings):
     conversation_max_follow_ups: int = 2
     conversation_max_clarifications: int = 2
 
+    # Live attention readout — where the candidate is looking, sampled from the
+    # camera while the interview runs. The gaze angles themselves live in
+    # cv_analysis.py, next to the geometry they describe.
+    attention_checks_enabled: bool = True
+    attention_check_interval_seconds: int = 4
+    # Consecutive off-camera checks before it's worth mentioning: four at the
+    # default interval is about a quarter of a minute of looking elsewhere.
+    attention_away_streak_to_flag: int = 4
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @property

@@ -77,6 +77,7 @@ _SCORED_FIELDS = (
     "posture_score",
     "face_presence",
     "visual_note",
+    "attention",
 )
 
 _scoring_locks: dict[str, asyncio.Lock] = {}

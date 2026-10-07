@@ -29,6 +29,27 @@ class SessionMode(str, Enum):
     conversation = "conversation"
 
 
+class AttentionEpisode(BaseModel):
+    """A sustained stretch of looking somewhere other than the camera."""
+
+    state: str
+    label: str
+    seconds: float
+    started_at: datetime | None = None
+
+
+class AttentionSummary(BaseModel):
+    checks: int = 0
+    on_camera_share: float = 0.0
+    # Share of checks per state: on_camera, looking_down, looking_left, …
+    shares: dict[str, float] = Field(default_factory=dict)
+    current: str | None = None
+    current_label: str | None = None
+    warning: str | None = None
+    episodes: list[AttentionEpisode] = Field(default_factory=list)
+    note: str | None = None
+
+
 class QuestionAnswer(BaseModel):
     question_id: str
     text: str
@@ -53,6 +74,8 @@ class QuestionAnswer(BaseModel):
     # Camera-derived; present only when a face was visible in enough frames.
     face_presence: float | None = None
     visual_note: str | None = None
+    # Where the candidate looked during this answer: shares, episodes, a note.
+    attention: dict | None = None
     answered_at: datetime | None = None
     # Conversation mode: when the interviewer moved on. Closed without a
     # content_score means the answer is still being scored.
@@ -103,6 +126,7 @@ class SessionOut(BaseModel):
     conversation: ConversationState | None = None
     # Absent on sessions from before identity verification existed.
     identity: IdentitySummary | None = None
+    attention: AttentionSummary | None = None
 
 
 class SessionInDB(BaseModel):

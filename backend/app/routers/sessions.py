@@ -21,6 +21,7 @@ from app.db.mongodb import get_db
 from app.models.session import AnswerSubmit, SessionCreate, SessionMode, SessionOut, SessionStatus
 from app.services import (
     asr,
+    attention_service,
     conversation_service,
     cv_analysis,
     identity_service,
@@ -64,6 +65,7 @@ def _to_out(doc: dict) -> SessionOut:
         questions=doc.get("questions", []),
         conversation=doc.get("conversation"),
         identity=identity_service.summary(doc["identity"]) if doc.get("identity") else None,
+        attention=attention_service.summary(doc["attention"]) if doc.get("attention") else None,
     )
 
 
@@ -116,6 +118,7 @@ async def create_session(
         "visual_score_avg": None,
         "questions": [],
         "identity": await identity_service.initial_state(db, user_id),
+        "attention": attention_service.new_state(),
     }
     if payload.mode is SessionMode.conversation:
         doc["conversation"] = conversation_service.initial_state(current_user, payload.role.value)
@@ -347,11 +350,14 @@ async def end_session(
             "ended_at": datetime.now(timezone.utc),
         }
 
-    # Re-read identity rather than using the copy fetched above: summarising
-    # takes seconds, and a check landing meanwhile must not be overwritten.
-    fresh = await db.sessions.find_one({"_id": session["_id"]}, {"identity": 1})
+    # Re-read identity and attention rather than using the copy fetched above:
+    # summarising takes seconds, and a check landing meanwhile must not be
+    # overwritten.
+    fresh = await db.sessions.find_one({"_id": session["_id"]}, {"identity": 1, "attention": 1})
     if fresh and fresh.get("identity"):
         updates["identity"] = identity_service.finalise(fresh["identity"], updates["ended_at"])
+    if fresh and fresh.get("attention"):
+        updates["attention"] = attention_service.finalise(fresh["attention"], updates["ended_at"])
     # The verdict is kept; the face it was reached with is not.
     await identity_service.delete_session_reference(db, session["_id"])
 

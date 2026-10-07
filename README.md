@@ -218,6 +218,21 @@ questions are grounded in it — + role selection), Interview, and Report
   response at a time. See `conversation_service.py`, `interviewer.py` and
   `tts.py`.
 
+- **Eye tracking and attention** — the camera says where the candidate is
+  looking, not just whether a face is present. Head orientation (turn, nod
+  and tilt, each axis checked against mirrored and rotated frames rather than
+  assumed) is combined with eye direction from the landmarker's eye-look
+  blendshapes, so a head turned aside with the eyes back on the lens counts
+  as eye contact — which the old head-only measure scored as none. Each frame
+  lands in one state: looking at the camera, down, up, away to the left or
+  right, turned away, eyes closed, or out of frame. A badge on the camera
+  preview names the current state every few seconds, the report breaks the
+  interview down by share of time with a per-question line, and a *sustained*
+  spell away (default: four checks in a row) is recorded as an episode. It is
+  deliberately kept out of the identity verdict: looking at a second screen
+  says nothing about who is sitting there. See `cv_analysis.py` and
+  `attention_service.py`; thresholds live beside the geometry they describe.
+
 - **Candidate identity verification** — confirms the person interviewing is
   the person on the resume. A profile photo in the resume (PDF or `.docx`) is
   detected and turned into a face embedding; with no usable photo, the

@@ -114,6 +114,12 @@ gets gnarly later.
       "provisional_score": 0
     }
   ],
+  "attention": {
+    "checks": 0,
+    "counts": { "on_camera": 0, "looking_down": 0, "no_face": 0 },
+    "episodes": [{ "state": "looking_down", "started_at": "...", "ended_at": "...", "checks": 0 }],
+    "note": "..."
+  },
   "conversation": {
     "phase": "intro | questioning | candidate_questions | closed",
     "version": 0,
@@ -170,6 +176,11 @@ transcript persist, matching the proposal's safety/security claims.
   returns the interviewer's reply: a follow-up, a clarification, the next
   question, or the closing line
 - `POST /speech` — text to WAV in the interviewer's voice (local Kokoro TTS)
+
+**Attention**
+- `POST /sessions/{id}/attention/check` — one frame; returns where the candidate
+  is looking (on camera, down, up, left, right, turned away, eyes closed, out of
+  frame) plus the running shares and any sustained episode
 
 **Identity Verification**
 - `POST /sessions/{id}/identity/verify` — start check on 1–5 webcam frames

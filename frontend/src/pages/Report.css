@@ -674,3 +674,136 @@
     padding-left: 0;
   }
 }
+
+/* Attention & gaze panel */
+.attention-report {
+  margin-top: var(--space-4);
+}
+
+.attention-share {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(77, 229, 192, 0.5);
+  background: rgba(77, 229, 192, 0.1);
+  color: var(--signal-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.attention-bar {
+  display: flex;
+  height: 12px;
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.attention-bar__fill {
+  height: 100%;
+}
+
+.attention-bar__fill--on {
+  background: var(--signal);
+}
+
+.attention-bar__fill--looking_down {
+  background: var(--accent);
+}
+
+.attention-bar__fill--looking_left,
+.attention-bar__fill--looking_right {
+  background: var(--accent-strong);
+}
+
+.attention-bar__fill--looking_up {
+  background: #d8c48a;
+}
+
+.attention-bar__fill--turned_away,
+.attention-bar__fill--no_face {
+  background: var(--danger);
+}
+
+.attention-bar__fill--eyes_closed {
+  background: var(--text-tertiary);
+}
+
+.attention-legend {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.attention-legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.attention-legend strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.attention-legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--text-tertiary);
+}
+
+.attention-legend__swatch--on {
+  background: var(--signal);
+}
+
+.attention-legend__swatch--looking_down {
+  background: var(--accent);
+}
+
+.attention-legend__swatch--looking_left,
+.attention-legend__swatch--looking_right {
+  background: var(--accent-strong);
+}
+
+.attention-legend__swatch--looking_up {
+  background: #d8c48a;
+}
+
+.attention-legend__swatch--turned_away,
+.attention-legend__swatch--no_face {
+  background: var(--danger);
+}
+
+.attention-events__item {
+  border-color: rgba(255, 176, 32, 0.35);
+  background: rgba(255, 176, 32, 0.07);
+}
+
+.attention-events__label {
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
+.breakdown__attention {
+  padding-left: calc(46px + var(--space-4));
+  margin-bottom: var(--space-3);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .breakdown__attention {
+    padding-left: 0;
+  }
+}
