@@ -6,8 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.mongodb import close_mongo_connection, connect_to_mongo
-from app.routers import auth, health, identity, resume, sessions, users
-from app.services import asr, face_identity
+from app.routers import auth, conversation, health, identity, resume, sessions, speech, users
+from app.services import asr, face_identity, tts
 
 
 @asynccontextmanager
@@ -18,6 +18,8 @@ async def lifespan(app: FastAPI):
     warm_up_tasks = [asyncio.create_task(asr.warm_up())]
     if settings.identity_verification_enabled:
         warm_up_tasks.append(asyncio.create_task(face_identity.warm_up()))
+    if settings.tts_enabled:
+        warm_up_tasks.append(asyncio.create_task(tts.warm_up()))
     yield
     for task in warm_up_tasks:
         task.cancel()
@@ -40,3 +42,5 @@ app.include_router(users.router)
 app.include_router(resume.router)
 app.include_router(sessions.router)
 app.include_router(identity.router)
+app.include_router(conversation.router)
+app.include_router(speech.router)

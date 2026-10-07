@@ -67,14 +67,6 @@ def count_long_pauses(transcript: Transcript) -> int:
     )
 
 
-def words_per_minute(transcript: Transcript) -> float:
-    """Speaking pace over the spoken portion of the answer."""
-    word_count = len(transcript.words) or len(transcript.text.split())
-    if not word_count or transcript.duration <= 0:
-        return 0.0
-    return round(word_count / (transcript.duration / 60), 1)
-
-
 def _pace_score(wpm: float) -> float:
     """100 inside the ideal band, tapering to 0 outside the acceptable one."""
     if PACE_IDEAL_LOW <= wpm <= PACE_IDEAL_HIGH:
@@ -98,11 +90,35 @@ def _taper(value: float, good: float, poor: float) -> float:
 def analyse(transcript: Transcript) -> dict:
     """Full delivery breakdown for one spoken answer."""
     word_count = len(transcript.words) or len(transcript.text.split())
-    minutes = max(transcript.duration / 60, 1 / 60)
+    return _breakdown(
+        word_count,
+        transcript.duration,
+        count_fillers(transcript.text),
+        count_long_pauses(transcript),
+    )
 
-    wpm = words_per_minute(transcript)
-    fillers = count_fillers(transcript.text)
-    pauses = count_long_pauses(transcript)
+
+def combine(turns: list[dict | None]) -> dict | None:
+    """Delivery across several spoken turns — an answer and its follow-up replies.
+
+    Recomputed from summed counts rather than averaged scores, so a ten-second
+    aside can't weigh as much as a two-minute answer. Pauses are only counted
+    within turns; the gap while the interviewer speaks isn't hesitation.
+    """
+    spoken = [turn for turn in turns if turn]
+    if not spoken:
+        return None
+    return _breakdown(
+        sum(turn["word_count"] for turn in spoken),
+        sum(turn["duration_seconds"] for turn in spoken),
+        sum(turn["filler_count"] for turn in spoken),
+        sum(turn["pause_count"] for turn in spoken),
+    )
+
+
+def _breakdown(word_count: int, duration: float, fillers: int, pauses: int) -> dict:
+    wpm = round(word_count / (duration / 60), 1) if word_count and duration > 0 else 0.0
+    minutes = max(duration / 60, 1 / 60)
 
     filler_rate = (fillers / word_count * 100) if word_count else 0.0
     pause_rate = pauses / minutes
@@ -121,6 +137,8 @@ def analyse(transcript: Transcript) -> dict:
         "wpm": wpm,
         "filler_count": fillers,
         "pause_count": pauses,
+        "word_count": word_count,
+        "duration_seconds": round(duration, 2),
         "delivery_score": round(delivery_score, 1),
         "delivery_breakdown": {
             "pace": round(pace_score, 1),

@@ -63,6 +63,20 @@ def answered_scores(questions: list[dict]) -> list[float]:
     return [q["content_score"] for q in questions if q.get("content_score") is not None]
 
 
+def performance_scores(questions: list[dict]) -> list[float]:
+    """The scores the difficulty policy reacts to.
+
+    The rubric score where it exists; otherwise, in a conversational interview
+    whose last answer is still being scored, the interviewer's in-the-moment
+    impression of it — so the next question doesn't have to wait for the rubric.
+    """
+    return [
+        q["content_score"] if q.get("content_score") is not None else q["provisional_score"]
+        for q in questions
+        if q.get("content_score") is not None or q.get("provisional_score") is not None
+    ]
+
+
 async def build_next_question(
     db: AsyncIOMotorDatabase,
     session: dict,
@@ -84,7 +98,7 @@ async def build_next_question(
     if questions:
         q_table = await load_q_table(db)
         difficulty = rl_engine.select_next_difficulty(
-            answered_scores(questions), questions[-1]["difficulty_level"], q_table
+            performance_scores(questions), questions[-1]["difficulty_level"], q_table
         )
     else:
         difficulty = starting_difficulty if starting_difficulty is not None else resume_difficulty
@@ -111,24 +125,35 @@ async def score_and_advance(
     transcript: str,
     delivery: dict | None = None,
     visual: dict | None = None,
+    *,
+    index: int | None = None,
+    follow_ups: list[tuple[str, str]] | None = None,
+    background: bool = False,
 ) -> dict:
-    """Score the current question's answer and learn from the outcome.
+    """Score a question's answer and learn from the outcome.
 
-    Returns the scored question dict. Does not persist — the caller writes the
-    updated session so the whole turn is one database round trip.
+    `index` defaults to the last question; a conversational interview passes
+    it explicitly, since the next question may already have been asked by the
+    time an earlier answer is scored. Returns the scored question dict. Does
+    not persist — the caller decides how to write it.
     """
     questions = session["questions"]
-    current = questions[-1]
+    position = len(questions) - 1 if index is None else index
+    current = questions[position]
 
     scored = await llm_judge.score_answer(
-        question=current["text"], transcript=transcript, role=session["role"]
+        question=current["text"],
+        transcript=transcript,
+        role=session["role"],
+        follow_ups=follow_ups,
+        background=background,
     )
 
-    prior_scores = answered_scores(questions)
+    prior_scores = answered_scores(questions[:position])
     difficulty = current["difficulty_level"]
     # The action the policy took was the step from the previous question's
     # difficulty to this one's. The first question follows no action.
-    previous_difficulty = questions[-2]["difficulty_level"] if len(questions) >= 2 else None
+    previous_difficulty = questions[position - 1]["difficulty_level"] if position >= 1 else None
 
     current.update(
         {

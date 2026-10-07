@@ -9,14 +9,17 @@ import RoleCard from "../components/RoleCard";
 import WizardProgress from "../components/WizardProgress";
 import { difficultyLabel } from "../constants/difficulty";
 import { PHOTO_MESSAGES, PHOTO_REASONS } from "../constants/identity";
+import { MODES, getMode } from "../constants/modes";
 import { ROLES, getRole } from "../constants/roles";
 import "./Setup.css";
 
-const STEP_LABELS = ["Resume", "Role", "Difficulty", "Review"];
+const STEP_LABELS = ["Resume", "Role", "Difficulty", "Format", "Review"];
 const RESUME_STEP = 0;
 const ROLE_STEP = 1;
 const DIFFICULTY_STEP = 2;
-const REVIEW_STEP = 3;
+const FORMAT_STEP = 3;
+const REVIEW_STEP = 4;
+const STEP_COUNT = STEP_LABELS.length;
 
 export default function Setup() {
   const navigate = useNavigate();
@@ -25,6 +28,7 @@ export default function Setup() {
   const [step, setStep] = useState(RESUME_STEP);
   const [selectedRole, setSelectedRole] = useState(ROLES[0].id);
   const [difficulty, setDifficulty] = useState(null);
+  const [mode, setMode] = useState(MODES[0].id);
   const [fileName, setFileName] = useState(null);
   const [uploadState, setUploadState] = useState("idle");
   const [parsed, setParsed] = useState(null);
@@ -37,7 +41,8 @@ export default function Setup() {
   const back = () => setStep((s) => Math.max(RESUME_STEP, s - 1));
   const continueFromResume = () => resumeReady && setStep(ROLE_STEP);
   const continueFromRole = () => setStep(DIFFICULTY_STEP);
-  const continueFromDifficulty = () => setStep(REVIEW_STEP);
+  const continueFromDifficulty = () => setStep(FORMAT_STEP);
+  const continueFromFormat = () => setStep(REVIEW_STEP);
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -67,8 +72,8 @@ export default function Setup() {
     setStarting(true);
     setStartError(null);
     try {
-      const session = await createSession(selectedRole, difficulty);
-      navigate("/interview", { state: { session } });
+      const session = await createSession(selectedRole, difficulty, mode);
+      navigate(mode === "conversation" ? "/conversation" : "/interview", { state: { session } });
     } catch (err) {
       setStartError(
         err.response?.data?.detail ||
@@ -91,7 +96,7 @@ export default function Setup() {
 
       {step === RESUME_STEP && (
         <div className="wizard-step" key="resume">
-          <p className="wizard-step__eyebrow">Step 1 of 4</p>
+          <p className="wizard-step__eyebrow">Step 1 of {STEP_COUNT}</p>
           <h1 className="wizard-step__title">Add your resume</h1>
           <p className="wizard-step__sub">
             ARIA tailors your questions to your actual experience, so this is required before you
@@ -179,7 +184,7 @@ export default function Setup() {
 
       {step === ROLE_STEP && (
         <div className="wizard-step" key="role">
-          <p className="wizard-step__eyebrow">Step 2 of 4</p>
+          <p className="wizard-step__eyebrow">Step 2 of {STEP_COUNT}</p>
           <h1 className="wizard-step__title">Choose a role</h1>
           <p className="wizard-step__sub">
             Pre-selected from your resume — pick a different one if you'd rather practise
@@ -210,7 +215,7 @@ export default function Setup() {
 
       {step === DIFFICULTY_STEP && (
         <div className="wizard-step" key="difficulty">
-          <p className="wizard-step__eyebrow">Step 3 of 4</p>
+          <p className="wizard-step__eyebrow">Step 3 of {STEP_COUNT}</p>
           <h1 className="wizard-step__title">Set a starting difficulty</h1>
           <p className="wizard-step__sub">
             {difficulty === null
@@ -229,6 +234,32 @@ export default function Setup() {
               className="setup-primary-button"
               onClick={continueFromDifficulty}
             >
+              Continue →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === FORMAT_STEP && (
+        <div className="wizard-step" key="format">
+          <p className="wizard-step__eyebrow">Step 4 of {STEP_COUNT}</p>
+          <h1 className="wizard-step__title">Choose how to interview</h1>
+          <p className="wizard-step__sub">
+            Both are scored the same way and adjust difficulty as you go — the difference is how
+            the questions reach you.
+          </p>
+
+          <div className="role-grid role-grid--two">
+            {MODES.map((m) => (
+              <RoleCard key={m.id} role={m} selected={mode === m.id} onSelect={setMode} />
+            ))}
+          </div>
+
+          <div className="wizard-nav">
+            <button type="button" className="wizard-back" onClick={back}>
+              ← Back
+            </button>
+            <button type="button" className="setup-primary-button" onClick={continueFromFormat}>
               Review →
             </button>
           </div>
@@ -237,7 +268,7 @@ export default function Setup() {
 
       {step === REVIEW_STEP && (
         <div className="wizard-step" key="review">
-          <p className="wizard-step__eyebrow">Step 4 of 4</p>
+          <p className="wizard-step__eyebrow">Step 5 of {STEP_COUNT}</p>
           <h1 className="wizard-step__title">Review and start</h1>
           <p className="wizard-step__sub">
             Everything below is editable — jump back to a step, or start the interview as is.
@@ -279,6 +310,22 @@ export default function Setup() {
                 className="review-row__edit"
                 onClick={() => goTo(DIFFICULTY_STEP)}
               >
+                Edit
+              </button>
+            </div>
+
+            <div className="review-row">
+              <div>
+                <p className="review-row__label">Interview format</p>
+                <p className="review-row__value">{getMode(mode).label}</p>
+                {mode === "conversation" && (
+                  <p className="review-row__meta">
+                    Your microphone and speakers are needed — ARIA speaks, and listens for your
+                    answers.
+                  </p>
+                )}
+              </div>
+              <button type="button" className="review-row__edit" onClick={() => goTo(FORMAT_STEP)}>
                 Edit
               </button>
             </div>

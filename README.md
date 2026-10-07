@@ -65,7 +65,9 @@ design, see [`docs/architecture.md`](docs/architecture.md).
 
 Whisper needs no separate install: `faster-whisper` comes from
 `requirements.txt` and bundles its own media decoding, so there is no system
-ffmpeg dependency. The speech model downloads itself on first use.
+ffmpeg dependency. The speech model downloads itself on first use, and the
+interviewer's voice (Kokoro, ~350 MB) and the face-verification models
+(~39 MB) download themselves the first time the backend starts.
 
 Everything runs on your machine — no API keys, no per-interview cost, and
 the app works with no internet connection once the models are pulled.
@@ -199,6 +201,22 @@ questions are grounded in it — + role selection), Interview, and Report
   below it — rather than a generic warning. A `beforeunload` listener is
   a backstop for tab close/refresh, which in-app navigation guarding can't
   intercept.
+
+- **Conversational interview mode** — chosen in Setup alongside the classic
+  one-question-at-a-time flow. ARIA greets the candidate by name, asks them
+  to introduce themselves, then works through five adaptive questions as a
+  spoken back-and-forth: after each answer it follows up (at most twice),
+  clarifies when asked, or moves on, and it closes by inviting the
+  candidate's own questions. The interviewer speaks with Kokoro, a local
+  neural voice, sentence by sentence (the browser's voice is the fallback),
+  and a turn ends hands-free after about three seconds of silence or with a
+  Done button. Each question's whole exchange is scored as one answer in the
+  background, so the conversation never waits on the rubric; scores appear
+  on screen as they land, and until then the next question's difficulty uses
+  the interviewer's quick estimate. A priority gate in `llm_client.py` puts
+  the interviewer's reply ahead of queued scoring, since Ollama generates one
+  response at a time. See `conversation_service.py`, `interviewer.py` and
+  `tts.py`.
 
 - **Candidate identity verification** — confirms the person interviewing is
   the person on the resume. A profile photo in the resume (PDF or `.docx`) is

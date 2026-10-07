@@ -61,6 +61,16 @@ class Settings(BaseSettings):
     identity_session_reference_ttl_hours: int = 6
     identity_resume_analysis_timeout_seconds: float = 30.0
 
+    # Conversational interview. The interviewer's voice is Kokoro, a local
+    # neural TTS (app/services/tts.py); the browser's own voice is the fallback.
+    tts_enabled: bool = True
+    tts_voice: str = "af_heart"
+    tts_speed: float = 1.0
+    # Past two follow-ups on one question, a conversation starts to feel like
+    # an interrogation.
+    conversation_max_follow_ups: int = 2
+    conversation_max_clarifications: int = 2
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @property

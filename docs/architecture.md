@@ -90,7 +90,8 @@ gets gnarly later.
 {
   "_id": "...",
   "user_id": "...",
-  "role": "SDE | HR",
+  "role": "SDE | DS | MLE | QA | PM | HR",
+  "mode": "classic | conversation",
   "status": "in_progress | completed | discarded",
   "started_at": "...",
   "ended_at": "...",
@@ -108,9 +109,19 @@ gets gnarly later.
       "wpm": 0, "pause_count": 0, "filler_count": 0,
       "content_score": 0, "delivery_score": 0,
       "gaze_score": 0, "expression_score": 0, "posture_score": 0,
-      "feedback_text": "..."
+      "feedback_text": "...",
+      "closed_at": "...",
+      "provisional_score": 0
     }
   ],
+  "conversation": {
+    "phase": "intro | questioning | candidate_questions | closed",
+    "version": 0,
+    "turns": [{ "speaker": "interviewer | candidate",
+                "kind": "greeting | question | follow_up | clarification | answer | ...",
+                "text": "...", "question_index": 0, "at": "...",
+                "delivery": {}, "visual": {} }]
+  },
   "identity": {
     "required": true,
     "method": "resume_photo | camera",
@@ -152,6 +163,13 @@ transcript persist, matching the proposal's safety/security claims.
   partial transcript, live gaze/attention signal, and the next question
   when ready. This is core to the MVP (real-time is literally in the
   project name), not a stretch upgrade over a REST-per-answer flow.
+
+**Conversational Interview**
+- `POST /sessions` with `mode: "conversation"` — starts with the interviewer's greeting
+- `POST /sessions/{id}/conversation/turn` — one spoken turn (audio + sampled frames);
+  returns the interviewer's reply: a follow-up, a clarification, the next
+  question, or the closing line
+- `POST /speech` — text to WAV in the interviewer's voice (local Kokoro TTS)
 
 **Identity Verification**
 - `POST /sessions/{id}/identity/verify` — start check on 1–5 webcam frames

@@ -618,3 +618,59 @@
     flex-direction: column;
   }
 }
+
+/* Conversational interview: each question's back-and-forth */
+.breakdown__exchange {
+  margin-top: var(--space-3);
+  padding-left: calc(46px + var(--space-4));
+}
+
+.breakdown__exchange summary {
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.breakdown__exchange summary:hover {
+  color: var(--text-secondary);
+}
+
+.exchange {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.exchange__turn {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.exchange__speaker {
+  padding-top: 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.exchange__text {
+  color: var(--text-secondary);
+}
+
+.exchange__turn--candidate .exchange__text {
+  color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  .breakdown__exchange {
+    padding-left: 0;
+  }
+}

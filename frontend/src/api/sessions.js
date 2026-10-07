@@ -1,9 +1,28 @@
 import apiClient from "./client";
 
-export async function createSession(role, startingDifficulty = null) {
+export async function createSession(role, startingDifficulty = null, mode = "classic") {
   const { data } = await apiClient.post("/sessions", {
     role,
     starting_difficulty: startingDifficulty,
+    mode,
+  });
+  return data;
+}
+
+export async function getSession(sessionId) {
+  const { data } = await apiClient.get(`/sessions/${sessionId}`);
+  return data;
+}
+
+/** One spoken turn in a conversational interview; resolves with the interviewer's reply. */
+export async function submitConversationTurn(sessionId, blob, extension = "webm", frames = []) {
+  const form = new FormData();
+  form.append("audio", blob, `turn.${extension}`);
+  frames.forEach((frame, i) => form.append("frames", frame, `frame-${i}.jpg`));
+  // Transcription plus the interviewer's reply — and the next question, when
+  // the interviewer moves on — all on local models.
+  const { data } = await apiClient.post(`/sessions/${sessionId}/conversation/turn`, form, {
+    timeout: 180000,
   });
   return data;
 }

@@ -22,3 +22,7 @@ pillow==12.3.0
 # pinned here so neither dependency can drop them silently.
 opencv-contrib-python==5.0.0.93
 cryptography==50.0.1
+# Interviewer voice for conversational interviews: local neural TTS through
+# onnxruntime (already installed by faster-whisper). Model files download on
+# first start.
+kokoro-onnx==0.6.1

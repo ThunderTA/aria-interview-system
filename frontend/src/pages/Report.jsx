@@ -22,6 +22,27 @@ const TILE_ICONS = {
   Visual: { icon: EyeIcon, tint: "signal" },
 };
 
+/** One question's back-and-forth in a conversational interview. */
+function ExchangeTranscript({ turns }) {
+  const followUps = turns.filter((t) => t.kind === "follow_up").length;
+  return (
+    <details className="breakdown__exchange">
+      <summary>
+        The conversation
+        {followUps > 0 && ` · ${followUps} follow-up${followUps === 1 ? "" : "s"}`}
+      </summary>
+      <ol className="exchange">
+        {turns.map((turn) => (
+          <li key={turn.id} className={`exchange__turn exchange__turn--${turn.speaker}`}>
+            <span className="exchange__speaker">{turn.speaker === "interviewer" ? "ARIA" : "You"}</span>
+            <span className="exchange__text">{turn.text}</span>
+          </li>
+        ))}
+      </ol>
+    </details>
+  );
+}
+
 export default function Report() {
   const location = useLocation();
   const sessionId = location.state?.sessionId;
@@ -59,6 +80,7 @@ export default function Report() {
 
   const { session, strengths, improvements } = report;
   const role = getRole(session.role);
+  const isConversation = session.mode === "conversation";
   const answered = session.questions
     .filter((q) => q.content_score != null)
     .map((q, i) => ({ ...q, num: i + 1 }));
@@ -66,6 +88,10 @@ export default function Report() {
   const avgWpm = spokenAnswers.length
     ? Math.round(spokenAnswers.reduce((sum, q) => sum + q.wpm, 0) / spokenAnswers.length)
     : null;
+  const threadTurns = (index) =>
+    (session.conversation?.turns ?? []).filter(
+      (t) => t.question_index === index && t.kind !== "repeat_request"
+    );
 
   const tiles = [
     { label: "Overall", value: session.overall_score, hint: "Across all measured dimensions" },
@@ -83,7 +109,8 @@ export default function Report() {
         <div>
           <h1 className="report-header__title">Session report</h1>
           <p className="report-header__meta">
-            {role.label} · {answered.length} question{answered.length === 1 ? "" : "s"} answered ·{" "}
+            {role.label} · {isConversation ? "Conversational interview · " : ""}
+            {answered.length} question{answered.length === 1 ? "" : "s"} answered ·{" "}
             {new Date(session.started_at).toLocaleDateString(undefined, {
               weekday: "short",
               month: "short",
@@ -210,6 +237,10 @@ export default function Report() {
                     )}
 
                     {q.feedback_text && <p className="breakdown__feedback">{q.feedback_text}</p>}
+
+                    {isConversation && threadTurns(q.order_index).length > 0 && (
+                      <ExchangeTranscript turns={threadTurns(q.order_index)} />
+                    )}
                   </li>
                 ))}
               </ol>

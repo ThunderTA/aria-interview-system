@@ -126,13 +126,25 @@ async def generate_question(
     }
 
 
-async def score_answer(question: str, transcript: str, role: str = "SDE") -> dict:
+async def score_answer(
+    question: str,
+    transcript: str,
+    role: str = "SDE",
+    follow_ups: list[tuple[str, str]] | None = None,
+    *,
+    background: bool = False,
+) -> dict:
     """Grade a spoken answer against the rubric.
 
+    `follow_ups` are (interviewer question, candidate reply) pairs from a
+    conversational interview. The whole exchange is graded as one answer, so a
+    good follow-up reply can supply depth the first answer lacked.
+
     Returns the four rubric scores (0-10), a weighted `content_score` (0-100),
-    the feedback paragraph, and strengths/improvements lists.
+    and the feedback paragraph.
     """
-    if not transcript.strip():
+    follow_ups = follow_ups or []
+    if not transcript.strip() and not any(reply.strip() for _, reply in follow_ups):
         return _empty_answer_result()
 
     brief = ROLE_BRIEFS.get(role, ROLE_BRIEFS["SDE"])
@@ -143,11 +155,19 @@ async def score_answer(question: str, transcript: str, role: str = "SDE") -> dic
         "Be fair but honest: do not inflate scores for vague or incorrect answers."
     )
 
+    exchange = ""
+    if follow_ups:
+        lines = "\n".join(f"Interviewer: {q}\nCandidate: {a}" for q, a in follow_ups)
+        exchange = (
+            "\n\nThe interviewer then asked follow-up questions. Grade the whole exchange — "
+            "a follow-up reply can add depth or correct an earlier mistake:\n" + lines
+        )
+
     user_prompt = f"""Question asked:
 {question}
 
 Candidate's transcribed answer:
-{transcript}
+{transcript}{exchange}
 
 Score each criterion from 0 to 10:
 - correctness: is the substance factually right?

@@ -18,8 +18,15 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.deps import get_current_user
 from app.db.mongodb import get_db
-from app.models.session import AnswerSubmit, SessionCreate, SessionOut, SessionStatus
-from app.services import asr, cv_analysis, identity_service, interview_service, speech_metrics
+from app.models.session import AnswerSubmit, SessionCreate, SessionMode, SessionOut, SessionStatus
+from app.services import (
+    asr,
+    conversation_service,
+    cv_analysis,
+    identity_service,
+    interview_service,
+    speech_metrics,
+)
 from app.services.asr import TranscriptionError
 from app.services.llm_client import LLMUnavailableError
 
@@ -46,6 +53,7 @@ def _to_out(doc: dict) -> SessionOut:
         id=str(doc["_id"]),
         user_id=doc["user_id"],
         role=doc["role"],
+        mode=doc.get("mode", SessionMode.classic.value),
         status=doc["status"],
         started_at=doc["started_at"],
         ended_at=doc.get("ended_at"),
@@ -54,6 +62,7 @@ def _to_out(doc: dict) -> SessionOut:
         delivery_score_avg=doc.get("delivery_score_avg"),
         visual_score_avg=doc.get("visual_score_avg"),
         questions=doc.get("questions", []),
+        conversation=doc.get("conversation"),
         identity=identity_service.summary(doc["identity"]) if doc.get("identity") else None,
     )
 
@@ -63,6 +72,15 @@ def _require_identity_gate(session: dict) -> None:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
             "Confirm your identity with your camera before answering.",
+        )
+
+
+def _require_classic(session: dict) -> None:
+    # A conversation's state lives in its turns; answering through the classic
+    # endpoints would bypass it.
+    if session.get("mode", SessionMode.classic.value) != SessionMode.classic.value:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "This is a conversational interview — answer by speaking."
         )
 
 
@@ -88,6 +106,7 @@ async def create_session(
     doc = {
         "user_id": user_id,
         "role": payload.role.value,
+        "mode": payload.mode.value,
         "status": SessionStatus.in_progress.value,
         "started_at": datetime.now(timezone.utc),
         "ended_at": None,
@@ -98,6 +117,8 @@ async def create_session(
         "questions": [],
         "identity": await identity_service.initial_state(db, user_id),
     }
+    if payload.mode is SessionMode.conversation:
+        doc["conversation"] = conversation_service.initial_state(current_user, payload.role.value)
 
     try:
         first_question = await interview_service.build_next_question(
@@ -164,6 +185,7 @@ async def submit_answer(
     """
     user_id = str(current_user["_id"])
     session = await _get_owned_session(db, session_id, user_id, must_be_active=True)
+    _require_classic(session)
     _require_identity_gate(session)
 
     current = session["questions"][-1]
@@ -201,6 +223,7 @@ async def submit_spoken_answer(
     """
     user_id = str(current_user["_id"])
     session = await _get_owned_session(db, session_id, user_id, must_be_active=True)
+    _require_classic(session)
     _require_identity_gate(session)
 
     current = session["questions"][-1]
@@ -259,6 +282,7 @@ async def next_question(
     """
     user_id = str(current_user["_id"])
     session = await _get_owned_session(db, session_id, user_id, must_be_active=True)
+    _require_classic(session)
     _require_identity_gate(session)
     questions = session["questions"]
 
@@ -293,7 +317,14 @@ async def end_session(
     out of history and the average-score calculation (both key off
     overall_score being set, which discarded sessions never get).
     """
-    session = await _get_owned_session(db, session_id, str(current_user["_id"]))
+    user_id = str(current_user["_id"])
+    session = await _get_owned_session(db, session_id, user_id)
+
+    if session.get("mode") == SessionMode.conversation.value:
+        # Score whatever was said before the conversation stopped, so the
+        # report and the history threshold both count it.
+        await conversation_service.finish(db, session)
+        session = await _get_owned_session(db, session_id, user_id)
 
     # Drop a trailing unanswered question so it doesn't distort the report.
     questions = session["questions"]

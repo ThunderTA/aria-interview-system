@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -19,6 +20,13 @@ class SessionStatus(str, Enum):
     in_progress = "in_progress"
     completed = "completed"
     discarded = "discarded"
+
+
+class SessionMode(str, Enum):
+    # One question at a time; speak or type each answer.
+    classic = "classic"
+    # A spoken back-and-forth with follow-up questions.
+    conversation = "conversation"
 
 
 class QuestionAnswer(BaseModel):
@@ -46,6 +54,23 @@ class QuestionAnswer(BaseModel):
     face_presence: float | None = None
     visual_note: str | None = None
     answered_at: datetime | None = None
+    # Conversation mode: when the interviewer moved on. Closed without a
+    # content_score means the answer is still being scored.
+    closed_at: datetime | None = None
+
+
+class ConversationTurn(BaseModel):
+    id: str
+    speaker: Literal["interviewer", "candidate"]
+    kind: str
+    text: str
+    question_index: int | None = None
+    at: datetime
+
+
+class ConversationState(BaseModel):
+    phase: Literal["intro", "questioning", "candidate_questions", "closed"]
+    turns: list[ConversationTurn] = Field(default_factory=list)
 
 
 class SessionCreate(BaseModel):
@@ -53,6 +78,7 @@ class SessionCreate(BaseModel):
     # 1 (warm-up) to 5 (hard). Omitted or null means "let ARIA decide" —
     # the resume-derived seniority sets the starting point instead.
     starting_difficulty: int | None = Field(default=None, ge=1, le=5)
+    mode: SessionMode = SessionMode.classic
 
 
 class AnswerSubmit(BaseModel):
@@ -65,6 +91,7 @@ class SessionOut(BaseModel):
     id: str
     user_id: str
     role: SessionRole
+    mode: SessionMode = SessionMode.classic
     status: SessionStatus
     started_at: datetime
     ended_at: datetime | None = None
@@ -73,6 +100,7 @@ class SessionOut(BaseModel):
     delivery_score_avg: float | None = None
     visual_score_avg: float | None = None
     questions: list[QuestionAnswer] = Field(default_factory=list)
+    conversation: ConversationState | None = None
     # Absent on sessions from before identity verification existed.
     identity: IdentitySummary | None = None
 
@@ -80,6 +108,7 @@ class SessionOut(BaseModel):
 class SessionInDB(BaseModel):
     user_id: str
     role: SessionRole
+    mode: SessionMode = SessionMode.classic
     status: SessionStatus = SessionStatus.in_progress
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     ended_at: datetime | None = None

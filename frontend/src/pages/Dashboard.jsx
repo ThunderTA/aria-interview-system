@@ -196,6 +196,7 @@ export default function Dashboard() {
                     <span className="session-list__body">
                       <span className="session-list__role">{getRole(s.role).short}</span>
                       <span className="session-list__meta">
+                        {s.mode === "conversation" ? "Conversation · " : ""}
                         {s.questions.filter((q) => q.content_score != null).length} answered ·{" "}
                         {new Date(s.started_at).toLocaleDateString()}
                       </span>

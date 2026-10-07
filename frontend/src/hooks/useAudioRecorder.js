@@ -8,6 +8,15 @@ const PREFERRED_MIME_TYPES = [
   "audio/ogg;codecs=opus",
 ];
 
+// Hands-free end of turn. The first moments of each recording calibrate
+// against the room's background noise, so a noisy room doesn't read as speech.
+const VAD_TICK_MS = 100;
+const CALIBRATION_MS = 400;
+const MIN_SPEECH_LEVEL = 0.06;
+const MAX_SPEECH_LEVEL = 0.25;
+// A cough or a chair creak shouldn't count as having started to answer.
+const MIN_SPEECH_MS = 400;
+
 function pickMimeType() {
   if (typeof MediaRecorder === "undefined") return null;
   return PREFERRED_MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) ?? null;
@@ -20,8 +29,17 @@ function extensionFor(mimeType) {
   return "webm";
 }
 
+function readLevel(analyser, buffer) {
+  analyser.getByteTimeDomainData(buffer);
+  // RMS around the 128 midpoint, scaled to roughly 0..1.
+  let sum = 0;
+  for (const v of buffer) sum += (v - 128) ** 2;
+  return Math.min(1, Math.sqrt(sum / buffer.length) / 40);
+}
+
 /**
- * Microphone recording with a live input level for the waveform.
+ * Microphone recording with a live input level for the waveform, and optional
+ * hands-free end-of-turn detection.
  *
  * Owns the MediaStream so the browser's recording indicator clears the moment
  * a recording stops, rather than lingering for the whole interview.
@@ -30,6 +48,7 @@ export default function useAudioRecorder() {
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState(null);
+  const [heardSpeech, setHeardSpeech] = useState(false);
 
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -37,6 +56,7 @@ export default function useAudioRecorder() {
   const audioContextRef = useRef(null);
   const rafRef = useRef(null);
   const timerRef = useRef(null);
+  const vadTimerRef = useRef(null);
   // The waveform container. Input level is written straight onto it as a CSS
   // variable: at 60fps, putting it in React state would re-render the whole
   // interview screen on every frame for a purely decorative effect.
@@ -49,6 +69,8 @@ export default function useAudioRecorder() {
   const cleanup = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
     clearInterval(timerRef.current);
+    clearInterval(vadTimerRef.current);
+    vadTimerRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     audioContextRef.current?.close().catch(() => {});
@@ -58,7 +80,12 @@ export default function useAudioRecorder() {
 
   useEffect(() => cleanup, [cleanup]);
 
-  const start = useCallback(async () => {
+  /**
+   * Start recording. With `onSilence`, the turn can end hands-free: it fires
+   * once, after the speaker has said something and then been quiet for
+   * `silenceMs`. Without it, recording runs until stop() or cancel().
+   */
+  const start = useCallback(async ({ onSilence, silenceMs = 3000 } = {}) => {
     setError(null);
     if (!navigator.mediaDevices?.getUserMedia || !pickMimeType()) {
       setError("This browser can't record audio. You can type your answer instead.");
@@ -90,7 +117,6 @@ export default function useAudioRecorder() {
     recorder.start(250);
     recorderRef.current = recorder;
 
-    // Live level, purely for the waveform.
     const audioContext = new AudioContext();
     audioContextRef.current = audioContext;
     const analyser = audioContext.createAnalyser();
@@ -98,21 +124,60 @@ export default function useAudioRecorder() {
     audioContext.createMediaStreamSource(stream).connect(analyser);
     const buffer = new Uint8Array(analyser.frequencyBinCount);
 
+    // Live level, purely for the waveform.
     const sample = () => {
-      analyser.getByteTimeDomainData(buffer);
-      // RMS around the 128 midpoint, scaled to roughly 0..1.
-      let sum = 0;
-      for (const v of buffer) sum += (v - 128) ** 2;
-      setLevel(Math.min(1, Math.sqrt(sum / buffer.length) / 40));
+      setLevel(readLevel(analyser, buffer));
       rafRef.current = requestAnimationFrame(sample);
     };
     sample();
+
+    setHeardSpeech(false);
+    if (onSilence) {
+      // A timer rather than the animation loop: requestAnimationFrame stops
+      // entirely in a background tab, which would leave a turn open forever.
+      const startedAt = performance.now();
+      let lastTick = startedAt;
+      let noiseFloor = Infinity;
+      let speechMs = 0;
+      let heard = false;
+      let quietSince = null;
+
+      vadTimerRef.current = setInterval(() => {
+        const now = performance.now();
+        const elapsed = now - lastTick;
+        lastTick = now;
+        const level = readLevel(analyser, buffer);
+
+        if (now - startedAt < CALIBRATION_MS) {
+          noiseFloor = Math.min(noiseFloor, level);
+          return;
+        }
+        const floor = Number.isFinite(noiseFloor) ? noiseFloor : 0;
+        const threshold = Math.min(MAX_SPEECH_LEVEL, Math.max(MIN_SPEECH_LEVEL, floor * 3));
+
+        if (level >= threshold) {
+          quietSince = null;
+          speechMs += elapsed;
+          if (!heard && speechMs >= MIN_SPEECH_MS) {
+            heard = true;
+            setHeardSpeech(true);
+          }
+        } else if (heard) {
+          quietSince ??= now;
+          if (now - quietSince >= silenceMs) {
+            clearInterval(vadTimerRef.current);
+            vadTimerRef.current = null;
+            onSilence();
+          }
+        }
+      }, VAD_TICK_MS);
+    }
 
     setSeconds(0);
     timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
     setRecording(true);
     return true;
-  }, []);
+  }, [setLevel]);
 
   /** Stops recording and resolves with the finished audio. */
   const stop = useCallback(
@@ -144,12 +209,14 @@ export default function useAudioRecorder() {
     cleanup();
     setRecording(false);
     setSeconds(0);
+    setHeardSpeech(false);
   }, [cleanup]);
 
   return {
     recording,
     seconds,
     error,
+    heardSpeech,
     start,
     stop,
     cancel,

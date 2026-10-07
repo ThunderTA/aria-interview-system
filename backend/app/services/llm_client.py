@@ -9,8 +9,10 @@ constrains decoding so responses parse reliably instead of needing the model to
 be politely asked for JSON.
 """
 
+import asyncio
 import json
 import logging
+from contextlib import asynccontextmanager
 
 import httpx
 
@@ -23,6 +25,53 @@ class LLMUnavailableError(RuntimeError):
     """The LLM backend could not be reached or did not return usable output."""
 
 
+class _PriorityGate:
+    """One request at a time, with a live conversation ahead of background work.
+
+    Ollama generates one response at a time by default, so a rubric-scoring
+    request queued just before the interviewer's next line would leave the
+    candidate waiting in silence. Serialising requests here lets an
+    interactive one go next instead of queueing behind background work. A
+    request that is already running is never interrupted.
+    """
+
+    def __init__(self) -> None:
+        self._condition: asyncio.Condition | None = None
+        self._busy = False
+        self._interactive_waiting = 0
+
+    @asynccontextmanager
+    async def slot(self, *, background: bool):
+        if self._condition is None:
+            self._condition = asyncio.Condition()
+        condition = self._condition
+
+        async with condition:
+            if not background:
+                self._interactive_waiting += 1
+            try:
+                await condition.wait_for(
+                    lambda: not self._busy and (not background or self._interactive_waiting == 0)
+                )
+            finally:
+                if not background:
+                    self._interactive_waiting -= 1
+                    # A cancelled interactive waiter may have been all that
+                    # was holding background work back.
+                    condition.notify_all()
+            self._busy = True
+
+        try:
+            yield
+        finally:
+            async with condition:
+                self._busy = False
+                condition.notify_all()
+
+
+_gate = _PriorityGate()
+
+
 async def chat_json(
     system_prompt: str,
     user_prompt: str,
@@ -30,12 +79,14 @@ async def chat_json(
     *,
     temperature: float = 0.7,
     max_tokens: int | None = None,
+    background: bool = False,
 ) -> dict:
     """Run a chat completion constrained to `schema` and return the parsed object.
 
     `max_tokens` matters more than it looks: local generation is output-token
     bound, so capping the response is the main lever on how long a candidate
-    waits mid-interview.
+    waits mid-interview. `background` marks work nobody is waiting on in real
+    time, such as scoring a finished answer, which yields to everything else.
     """
     options: dict = {"temperature": temperature}
     if max_tokens is not None:
@@ -53,10 +104,11 @@ async def chat_json(
     }
 
     try:
-        async with httpx.AsyncClient(timeout=settings.llm_timeout_seconds) as client:
-            response = await client.post(f"{settings.llm_base_url}/api/chat", json=payload)
-            response.raise_for_status()
-            body = response.json()
+        async with _gate.slot(background=background):
+            async with httpx.AsyncClient(timeout=settings.llm_timeout_seconds) as client:
+                response = await client.post(f"{settings.llm_base_url}/api/chat", json=payload)
+                response.raise_for_status()
+                body = response.json()
     except httpx.HTTPStatusError as exc:
         detail = exc.response.text[:200]
         if exc.response.status_code == 404:

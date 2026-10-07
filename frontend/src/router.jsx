@@ -5,6 +5,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Setup from "./pages/Setup";
 import Interview from "./pages/Interview";
+import Conversation from "./pages/Conversation";
 import Report from "./pages/Report";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -12,6 +13,7 @@ const PROTECTED_ROUTES = [
   { path: "/dashboard", element: <Dashboard /> },
   { path: "/setup", element: <Setup /> },
   { path: "/interview", element: <Interview /> },
+  { path: "/conversation", element: <Conversation /> },
   { path: "/report", element: <Report /> },
 ];
 

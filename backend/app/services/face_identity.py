@@ -16,12 +16,10 @@ embeddings returned here are handed to identity_service, which encrypts them.
 """
 
 import asyncio
-import hashlib
 import io
 import logging
 import threading
 import time
-import urllib.request
 import zipfile
 from collections import Counter
 from dataclasses import dataclass, field
@@ -33,6 +31,7 @@ import numpy as np
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from app.core.config import settings
+from app.services.model_download import ModelDownloadError, ensure_model_file
 
 logger = logging.getLogger(__name__)
 
@@ -124,40 +123,15 @@ _load_lock = threading.Lock()
 _infer_lock = threading.Lock()
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1 << 20), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _ensure_model(key: str) -> Path:
     filename, url, expected_sha = _MODELS[key]
-    path = MODEL_DIR / filename
-    if path.exists() and _sha256(path) == expected_sha:
-        return path
-
-    MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    partial = path.with_suffix(".part")
-    logger.info("Downloading face verification model %s…", filename)
     try:
-        with urllib.request.urlopen(url, timeout=DOWNLOAD_TIMEOUT_SECONDS) as response, partial.open(
-            "wb"
-        ) as out:
-            while chunk := response.read(1 << 20):
-                out.write(chunk)
-    except Exception as exc:
-        partial.unlink(missing_ok=True)
+        return ensure_model_file(MODEL_DIR / filename, url, expected_sha, timeout=DOWNLOAD_TIMEOUT_SECONDS)
+    except ModelDownloadError as exc:
         raise FaceEngineUnavailable(
-            "Face verification models couldn't be downloaded. Check the connection and try again."
+            "Face verification models couldn't be downloaded or failed their integrity check. "
+            "Check the connection and try again."
         ) from exc
-
-    if _sha256(partial) != expected_sha:
-        partial.unlink(missing_ok=True)
-        raise FaceEngineUnavailable("A downloaded face verification model failed its integrity check.")
-    partial.replace(path)
-    return path
 
 
 def _load():

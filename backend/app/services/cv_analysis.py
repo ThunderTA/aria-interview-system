@@ -277,6 +277,27 @@ async def analyse_frames(frames: list[bytes]) -> dict | None:
     }
 
 
+def combine_results(results: list[dict | None]) -> dict | None:
+    """Visual scores across several answers' frames, weighted by how many frames each had."""
+    usable = [r for r in results if r]
+    if not usable:
+        return None
+    total = sum(r["frames_analysed"] for r in usable)
+
+    def weighted(key: str) -> float:
+        return round(sum(r[key] * r["frames_analysed"] for r in usable) / total, 1)
+
+    gaze, presence = weighted("gaze_score"), weighted("face_presence")
+    return {
+        "gaze_score": gaze,
+        "expression_score": weighted("expression_score"),
+        "posture_score": weighted("posture_score"),
+        "face_presence": presence,
+        "frames_analysed": total,
+        "note": _describe(gaze, presence / 100),
+    }
+
+
 def _describe(gaze: float, presence: float) -> str:
     """One plain line about visual presence, for the report."""
     if presence < 0.8:
