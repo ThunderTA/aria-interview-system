@@ -1,4 +1,4 @@
-# ARIA — Architecture & Design Decisions
+# ARIA - Architecture & Design Decisions
 
 This document captures the product and technical decisions made during
 project planning, before implementation began. It exists so the whole team
@@ -16,7 +16,7 @@ has a shared reference, not just whoever was in the planning conversation.
 **Adaptive Interview Engine**
 - LLM generates role-specific questions
 - Difficulty adjusts turn-by-turn via a **tabular Q-learning / contextual
-  bandit** (not deep RL — chosen for feasibility: fast to train, easy to
+  bandit** (not deep RL - chosen for feasibility: fast to train, easy to
   explain in a viva, doesn't need a large training corpus). State: last 2-3
   answer scores + current difficulty tier. Action: `{easier, same, harder}`.
   Reward: weighted combination of content + delivery score.
@@ -24,14 +24,14 @@ has a shared reference, not just whoever was in the planning conversation.
 **Multimodal Assessment (per answer)**
 - **ASR**: Whisper transcribes spoken answers, driven by VAD-based
   utterance segmentation over the live WebSocket audio stream (see
-  "Real-Time Interview Loop" below) — not full continuous streaming
+  "Real-Time Interview Loop" below) - not full continuous streaming
   transcription.
-- **Content evaluation**: LLM-as-judge — one call scores
+- **Content evaluation**: LLM-as-judge - one call scores
   correctness/depth/relevance/clarity **and** produces the feedback text,
   since both are needed anyway.
 - **Speech delivery**: WPM, pause count/duration, filler-word count
   (Librosa).
-- **Visual (CV)**: gaze/eye-contact, facial expression, posture — via
+- **Visual (CV)**: gaze/eye-contact, facial expression, posture - via
   OpenCV/MediaPipe, sampled at ~2-5 fps from streamed video frames (not
   full frame-rate).
 
@@ -46,7 +46,7 @@ has a shared reference, not just whoever was in the planning conversation.
 
 ## MVP vs. Stretch
 
-Stretch items are still in scope for the final deliverable — this split is
+Stretch items are still in scope for the final deliverable - this split is
 about *build order* (matches the project Gantt chart), not about cutting
 anything.
 
@@ -66,26 +66,24 @@ personalization (referencing specific past projects).
 A session is fundamentally a nested object: one interview with an ordered
 list of questions, each carrying a transcript + several score fields. It's
 almost always read/written as **one whole session**, not joined across
-tables — a natural fit for an embedded-document model. Mongo also avoids
+tables - a natural fit for an embedded-document model. Mongo also avoids
 migrations while score fields are still being iterated on.
 
 The one weak spot: cross-session analytics (e.g. score trend over the last
-N sessions) is more natural in SQL than in Mongo's aggregation pipeline —
-not hard, just less ergonomic. Worth knowing if the progress-dashboard query
+N sessions) is more natural in SQL than in Mongo's aggregation pipeline - not hard, just less ergonomic. Worth knowing if the progress-dashboard query
 gets gnarly later.
 
 > Note: the originally submitted project proposal names PostgreSQL in the
-> tech stack. This was a deliberate deviation made during planning — update
+> tech stack. This was a deliberate deviation made during planning - update
 > the tech stack section of the report to reflect MongoDB.
 
 ## Database Schema (MongoDB, database name: `aria`)
 
 - **users**: `{ _id, email (unique index), password_hash, name, created_at }`
-- **resumes**: `{ _id, user_id, raw_text, parsed_skills: [...], inferred_role, inferred_level, photo: { status, reason }, uploaded_at }`
-  — `photo.status` is `usable | not_found | unusable | unavailable`; the face itself is never stored here.
+- **resumes**: `{ _id, user_id, raw_text, parsed_skills: [...], inferred_role, inferred_level, photo: { status, reason }, uploaded_at }` - `photo.status` is `usable | not_found | unusable | unavailable`; the face itself is never stored here.
 - **identity_references** (encrypted face embeddings, see Identity Verification below):
   `{ _id: "resume:<user_id>" | "session:<session_id>", user_id, ciphertext, created_at, expires_at }`
-- **sessions** (core collection — questions/answers embedded, not separate):
+- **sessions** (core collection - questions/answers embedded, not separate):
 ```json
 {
   "_id": "...",
@@ -143,10 +141,9 @@ gets gnarly later.
 ```
 
 Indexes: `users.email` (unique), `sessions.user_id + started_at` (history
-list + progress dashboard queries), `identity_references.expires_at` (TTL —
-MongoDB deletes expired embeddings itself), `identity_references.user_id`.
+list + progress dashboard queries), `identity_references.expires_at` (TTL - MongoDB deletes expired embeddings itself), `identity_references.user_id`.
 
-Raw audio/video are **not stored** — only derived metrics and the text
+Raw audio/video are **not stored** - only derived metrics and the text
 transcript persist, matching the proposal's safety/security claims.
 
 ## API Design
@@ -164,29 +161,31 @@ transcript persist, matching the proposal's safety/security claims.
   `DELETE /sessions/{id}`, `POST /sessions/{id}/end`
 
 **Real-Time Interview Loop**
-- `WS /sessions/{id}/stream` — one WebSocket per session; client streams
+- `WS /sessions/{id}/stream` - one WebSocket per session; client streams
   audio chunks + sampled video frames continuously; server pushes back
   partial transcript, live gaze/attention signal, and the next question
   when ready. This is core to the MVP (real-time is literally in the
   project name), not a stretch upgrade over a REST-per-answer flow.
 
 **Conversational Interview**
-- `POST /sessions` with `mode: "conversation"` — starts with the interviewer's greeting
-- `POST /sessions/{id}/conversation/turn` — one spoken turn (audio + sampled frames);
+- `POST /sessions` with `mode: "conversation"` - starts with the interviewer's greeting
+- `POST /sessions/{id}/conversation/turn` - one spoken turn (audio + sampled frames);
   returns the interviewer's reply: a follow-up, a clarification, the next
   question, or the closing line
-- `POST /speech` — text to WAV in the interviewer's voice (local Kokoro TTS)
+- `POST /speech` - text to WAV in the interviewer's voice (local Kokoro TTS)
+- `GET /speech/voices` - the interviewer voices a candidate can choose between;
+  the chosen one is stored on the session and used for every line it speaks
 
 **Attention**
-- `POST /sessions/{id}/attention/check` — one frame; returns where the candidate
+- `POST /sessions/{id}/attention/check` - one frame; returns where the candidate
   is looking (on camera, down, up, left, right, turned away, eyes closed, out of
   frame) plus the running shares and any sustained episode
 
 **Identity Verification**
-- `POST /sessions/{id}/identity/verify` — start check on 1–5 webcam frames
+- `POST /sessions/{id}/identity/verify` - start check on 1-5 webcam frames
   (form field `continue_unmatched` after repeated resume-photo mismatches)
-- `POST /sessions/{id}/identity/check` — one periodic frame, or `camera_off=true`
-- `POST /sessions/{id}/identity/skip` — only accepted while face analysis can't run
+- `POST /sessions/{id}/identity/check` - one periodic frame, or `camera_off=true`
+- `POST /sessions/{id}/identity/skip` - only accepted while face analysis can't run
 - Answer and next-question endpoints return `403` until the start check is done.
 
 **Reporting & Progress**
@@ -213,6 +212,6 @@ Whisper  LLM Service  RL Difficulty  Speech/CV        MongoDB
 ```
 
 Heavy ML work happens in dedicated services behind the FastAPI backend, not
-in the browser — the frontend stays thin, and each ML piece (ASR, LLM
+in the browser - the frontend stays thin, and each ML piece (ASR, LLM
 judge, RL engine, CV analysis) is independently testable. See
 `backend/app/services/` for where each one plugs in.

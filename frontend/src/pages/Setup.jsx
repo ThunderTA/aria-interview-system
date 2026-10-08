@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { uploadResume } from "../api/resume";
 import { createSession } from "../api/sessions";
+import { fetchVoices, synthesizeSpeech } from "../api/speech";
 import AppHeader from "../components/AppHeader";
 import DifficultyPicker from "../components/DifficultyPicker";
 import Notice from "../components/Notice";
@@ -21,14 +22,21 @@ const FORMAT_STEP = 3;
 const REVIEW_STEP = 4;
 const STEP_COUNT = STEP_LABELS.length;
 
+// Short enough to hear the voice without sitting through a speech.
+const VOICE_SAMPLE = "Hi, I'm ARIA. Tell me about a project you're proud of.";
+
 export default function Setup() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const previewAudioRef = useRef(null);
 
   const [step, setStep] = useState(RESUME_STEP);
   const [selectedRole, setSelectedRole] = useState(ROLES[0].id);
   const [difficulty, setDifficulty] = useState(null);
   const [mode, setMode] = useState(MODES[0].id);
+  const [voices, setVoices] = useState([]);
+  const [voice, setVoice] = useState(null);
+  const [previewing, setPreviewing] = useState(null);
   const [fileName, setFileName] = useState(null);
   const [uploadState, setUploadState] = useState("idle");
   const [parsed, setParsed] = useState(null);
@@ -43,6 +51,36 @@ export default function Setup() {
   const continueFromRole = () => setStep(DIFFICULTY_STEP);
   const continueFromDifficulty = () => setStep(FORMAT_STEP);
   const continueFromFormat = () => setStep(REVIEW_STEP);
+
+  // Only needed once the candidate is actually choosing a format.
+  useEffect(() => {
+    if (step !== FORMAT_STEP || mode !== "conversation" || voices.length) return;
+    fetchVoices()
+      .then((data) => {
+        setVoices(data.voices);
+        setVoice((current) => current ?? data.default);
+      })
+      .catch(() => setVoices([]));
+  }, [step, mode, voices.length]);
+
+  useEffect(() => () => previewAudioRef.current?.pause(), []);
+
+  const chooseVoice = async (id) => {
+    setVoice(id);
+    setPreviewing(id);
+    try {
+      const blob = await synthesizeSpeech(VOICE_SAMPLE, { voice: id });
+      previewAudioRef.current?.pause();
+      const audio = new Audio(URL.createObjectURL(blob));
+      previewAudioRef.current = audio;
+      audio.onended = () => setPreviewing(null);
+      audio.onerror = () => setPreviewing(null);
+      await audio.play();
+    } catch {
+      // The voice is still selected; only the preview failed.
+      setPreviewing(null);
+    }
+  };
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -72,7 +110,7 @@ export default function Setup() {
     setStarting(true);
     setStartError(null);
     try {
-      const session = await createSession(selectedRole, difficulty, mode);
+      const session = await createSession(selectedRole, difficulty, mode, voice);
       navigate(mode === "conversation" ? "/conversation" : "/interview", { state: { session } });
     } catch (err) {
       setStartError(
@@ -87,6 +125,7 @@ export default function Setup() {
   // Absent when identity verification is switched off on the backend.
   const photo = parsed?.photo ?? null;
   const photoUsable = photo?.status === "usable";
+  const chosenVoice = voices.find((v) => v.id === voice);
 
   return (
     <div className="setup-shell">
@@ -100,7 +139,7 @@ export default function Setup() {
           <h1 className="wizard-step__title">Add your resume</h1>
           <p className="wizard-step__sub">
             ARIA tailors your questions to your actual experience, so this is required before you
-            can start. PDF or Word — the text shapes your questions, and a profile photo, if it has
+            can start. PDF or Word - the text shapes your questions, and a profile photo, if it has
             one, is used only to confirm it's you. The file itself isn't kept.
           </p>
 
@@ -187,7 +226,7 @@ export default function Setup() {
           <p className="wizard-step__eyebrow">Step 2 of {STEP_COUNT}</p>
           <h1 className="wizard-step__title">Choose a role</h1>
           <p className="wizard-step__sub">
-            Pre-selected from your resume — pick a different one if you'd rather practise
+            Pre-selected from your resume - pick a different one if you'd rather practise
             something else.
           </p>
 
@@ -220,7 +259,7 @@ export default function Setup() {
           <p className="wizard-step__sub">
             {difficulty === null
               ? "ARIA starts near the level your resume suggests, then adjusts after every answer."
-              : "This sets only the first question — ARIA still adjusts difficulty after that based on how you answer."}
+              : "This sets only the first question - ARIA still adjusts difficulty after that based on how you answer."}
           </p>
 
           <DifficultyPicker value={difficulty} onChange={setDifficulty} />
@@ -245,7 +284,7 @@ export default function Setup() {
           <p className="wizard-step__eyebrow">Step 4 of {STEP_COUNT}</p>
           <h1 className="wizard-step__title">Choose how to interview</h1>
           <p className="wizard-step__sub">
-            Both are scored the same way and adjust difficulty as you go — the difference is how
+            Both are scored the same way and adjust difficulty as you go - the difference is how
             the questions reach you.
           </p>
 
@@ -254,6 +293,29 @@ export default function Setup() {
               <RoleCard key={m.id} role={m} selected={mode === m.id} onSelect={setMode} />
             ))}
           </div>
+
+          {mode === "conversation" && voices.length > 0 && (
+            <div className="voice-picker">
+              <p className="voice-picker__label">Interviewer voice</p>
+              <div className="voice-picker__options">
+                {voices.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    className={`voice-pill${voice === v.id ? " voice-pill--selected" : ""}`}
+                    onClick={() => chooseVoice(v.id)}
+                    aria-pressed={voice === v.id}
+                  >
+                    <span className="voice-pill__name">{v.label}</span>
+                    <span className="voice-pill__meta">
+                      {previewing === v.id ? "Playing..." : `${v.accent} · ${v.tone}`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="voice-picker__hint">Click a voice to hear it.</p>
+            </div>
+          )}
 
           <div className="wizard-nav">
             <button type="button" className="wizard-back" onClick={back}>
@@ -271,7 +333,7 @@ export default function Setup() {
           <p className="wizard-step__eyebrow">Step 5 of {STEP_COUNT}</p>
           <h1 className="wizard-step__title">Review and start</h1>
           <p className="wizard-step__sub">
-            Everything below is editable — jump back to a step, or start the interview as is.
+            Everything below is editable - jump back to a step, or start the interview as is.
           </p>
 
           <div className="review-list">
@@ -320,8 +382,8 @@ export default function Setup() {
                 <p className="review-row__value">{getMode(mode).label}</p>
                 {mode === "conversation" && (
                   <p className="review-row__meta">
-                    Your microphone and speakers are needed — ARIA speaks, and listens for your
-                    answers.
+                    {chosenVoice ? `${chosenVoice.label}'s voice · ` : ""}your microphone and
+                    speakers are needed - ARIA speaks, and listens for your answers.
                   </p>
                 )}
               </div>

@@ -41,7 +41,7 @@ class AttentionEpisode(BaseModel):
 class AttentionSummary(BaseModel):
     checks: int = 0
     on_camera_share: float = 0.0
-    # Share of checks per state: on_camera, looking_down, looking_left, …
+    # Share of checks per state: on_camera, looking_down, looking_left, ...
     shares: dict[str, float] = Field(default_factory=dict)
     current: str | None = None
     current_label: str | None = None
@@ -98,10 +98,12 @@ class ConversationState(BaseModel):
 
 class SessionCreate(BaseModel):
     role: SessionRole
-    # 1 (warm-up) to 5 (hard). Omitted or null means "let ARIA decide" —
-    # the resume-derived seniority sets the starting point instead.
+    # 1 (warm-up) to 5 (hard). Omitted or null means "let ARIA decide": the
+    # resume-derived seniority sets the starting point instead.
     starting_difficulty: int | None = Field(default=None, ge=1, le=5)
     mode: SessionMode = SessionMode.classic
+    # Interviewer voice for a conversational interview; see tts.VOICES.
+    voice: str | None = None
 
 
 class AnswerSubmit(BaseModel):
@@ -123,6 +125,7 @@ class SessionOut(BaseModel):
     delivery_score_avg: float | None = None
     visual_score_avg: float | None = None
     questions: list[QuestionAnswer] = Field(default_factory=list)
+    voice: str | None = None
     conversation: ConversationState | None = None
     # Absent on sessions from before identity verification existed.
     identity: IdentitySummary | None = None

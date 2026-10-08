@@ -13,6 +13,27 @@ router = APIRouter(prefix="/speech", tags=["speech"], dependencies=[Depends(get_
 
 class SpeechRequest(BaseModel):
     text: str = Field(min_length=1, max_length=tts.MAX_TEXT_CHARS)
+    # Anything unknown falls back to the configured default rather than failing
+    # mid-interview over a voice name.
+    voice: str | None = None
+
+
+class VoiceOut(BaseModel):
+    id: str
+    label: str
+    accent: str
+    tone: str
+
+
+class VoicesOut(BaseModel):
+    voices: list[VoiceOut]
+    default: str
+
+
+@router.get("/voices", response_model=VoicesOut)
+async def list_voices():
+    """The interviewer voices a candidate can choose from."""
+    return VoicesOut(voices=list(tts.VOICES), default=tts.resolve_voice(settings.tts_voice))
 
 
 @router.post("", response_class=Response, responses={200: {"content": {"audio/wav": {}}}})
@@ -21,7 +42,7 @@ async def speak(payload: SpeechRequest):
     if not settings.tts_enabled:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "The interviewer's voice is turned off.")
     try:
-        audio = await tts.synthesize(payload.text)
+        audio = await tts.synthesize(payload.text, payload.voice)
     except tts.SpeechUnavailable as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
     except ValueError as exc:

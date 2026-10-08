@@ -5,7 +5,7 @@ import AttentionReport from "../components/AttentionReport";
 import { EyeIcon, IconChip, MicIcon, ScoreIcon, TargetIcon } from "../components/FeatureIcons";
 import IdentityReport from "../components/IdentityReport";
 import Notice from "../components/Notice";
-import { getReport } from "../api/sessions";
+import { downloadReportPdf, getReport } from "../api/sessions";
 import { getRole } from "../constants/roles";
 import "./Report.css";
 
@@ -50,6 +50,28 @@ export default function Report() {
 
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState(null);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const { blob, filename } = await downloadReportPdf(sessionId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setDownloadError(err.response?.data?.detail || "Couldn't build the PDF just now. Try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (!sessionId) {
@@ -74,7 +96,7 @@ export default function Report() {
     return (
       <div className="report-shell">
         <AppHeader backTo="/dashboard" backLabel="Dashboard" />
-        <p className="report-empty">Loading your report…</p>
+        <p className="report-empty">Loading your report...</p>
       </div>
     );
   }
@@ -135,7 +157,7 @@ export default function Report() {
                   <p
                     className={`score-tile__value${tile.value == null ? " score-tile__value--muted" : " gradient-text"}`}
                   >
-                    {tile.value == null ? "—" : Math.round(tile.value)}
+                    {tile.value == null ? " - " : Math.round(tile.value)}
                   </p>
                   <p className="score-tile__hint">{tile.hint}</p>
                 </section>
@@ -146,7 +168,7 @@ export default function Report() {
           {(session.delivery_score_avg == null || session.visual_score_avg == null) && (
             <Notice title="Some dimensions weren't measured.">
               {session.delivery_score_avg == null
-                ? "Delivery needs a spoken answer — typed ones are scored on content only. "
+                ? "Delivery needs a spoken answer - typed ones are scored on content only. "
                 : ""}
               {session.visual_score_avg == null
                 ? "Visual scores need the camera on while you answer. "
@@ -252,10 +274,20 @@ export default function Report() {
             )}
           </section>
 
+          {downloadError && <Notice title="Download failed.">{downloadError}</Notice>}
+
           <div className="report-actions">
             <Link to="/setup" className="report-cta">
               Practise again →
             </Link>
+            <button
+              type="button"
+              className="report-cta report-cta--ghost"
+              onClick={handleDownload}
+              disabled={downloading}
+            >
+              {downloading ? "Preparing PDF..." : "Download PDF"}
+            </button>
             <Link to="/dashboard" className="report-cta report-cta--ghost">
               Back to dashboard
             </Link>
@@ -283,7 +315,7 @@ export default function Report() {
               </>
             ) : (
               <p className="report-empty">
-                No spoken answers in this session — pace is measured from audio.
+                No spoken answers in this session - pace is measured from audio.
               </p>
             )}
           </section>

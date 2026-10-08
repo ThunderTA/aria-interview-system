@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,6 +10,7 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Response,
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
@@ -26,7 +28,9 @@ from app.services import (
     cv_analysis,
     identity_service,
     interview_service,
+    report_pdf,
     speech_metrics,
+    tts,
 )
 from app.services.asr import TranscriptionError
 from app.services.llm_client import LLMUnavailableError
@@ -63,6 +67,7 @@ def _to_out(doc: dict) -> SessionOut:
         delivery_score_avg=doc.get("delivery_score_avg"),
         visual_score_avg=doc.get("visual_score_avg"),
         questions=doc.get("questions", []),
+        voice=doc.get("voice"),
         conversation=doc.get("conversation"),
         identity=identity_service.summary(doc["identity"]) if doc.get("identity") else None,
         attention=attention_service.summary(doc["attention"]) if doc.get("attention") else None,
@@ -82,7 +87,7 @@ def _require_classic(session: dict) -> None:
     # endpoints would bypass it.
     if session.get("mode", SessionMode.classic.value) != SessionMode.classic.value:
         raise HTTPException(
-            status.HTTP_409_CONFLICT, "This is a conversational interview — answer by speaking."
+            status.HTTP_409_CONFLICT, "This is a conversational interview - answer by speaking."
         )
 
 
@@ -105,10 +110,13 @@ async def create_session(
 ):
     """Start a session and generate its first question."""
     user_id = str(current_user["_id"])
+    conversational = payload.mode is SessionMode.conversation
     doc = {
         "user_id": user_id,
         "role": payload.role.value,
         "mode": payload.mode.value,
+        # Only a conversational interview has a voice to speak in.
+        "voice": tts.resolve_voice(payload.voice) if conversational else None,
         "status": SessionStatus.in_progress.value,
         "started_at": datetime.now(timezone.utc),
         "ended_at": None,
@@ -120,7 +128,7 @@ async def create_session(
         "identity": await identity_service.initial_state(db, user_id),
         "attention": attention_service.new_state(),
     }
-    if payload.mode is SessionMode.conversation:
+    if conversational:
         doc["conversation"] = conversation_service.initial_state(current_user, payload.role.value)
 
     try:
@@ -216,7 +224,7 @@ async def submit_spoken_answer(
 ):
     """Transcribe a recorded answer, measure delivery and visuals, then score it.
 
-    Same path as the typed endpoint once there's a transcript — the difference
+    Same path as the typed endpoint once there's a transcript - the difference
     is that a spoken answer also yields pace, pause and filler metrics, and
     (when the camera was on) gaze, expression and posture.
 
@@ -309,14 +317,14 @@ async def end_session(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    """Finalise a session — the single exit point, whichever way it's reached.
+    """Finalise a session - the single exit point, whichever way it's reached.
 
     Ending is the same call whether the candidate finished all questions,
     clicked finish early, or left the page after confirming: the caller never
     has to decide completed-vs-discarded itself, this endpoint does, based on
     how many questions actually got answered. Fewer than
     MIN_ANSWERED_FOR_HISTORY and the session is marked discarded rather than
-    completed — no aggregates computed, no summary generated, and it stays
+    completed - no aggregates computed, no summary generated, and it stays
     out of history and the average-score calculation (both key off
     overall_score being set, which discarded sessions never get).
     """
@@ -382,6 +390,35 @@ async def get_report(
         "strengths": session.get("strengths", []),
         "improvements": session.get("improvements", []),
     }
+
+
+@router.get("/{session_id}/report/pdf")
+async def download_report(
+    session_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """The same report as a PDF, rendered on the fly.
+
+    Nothing is stored: the file is built per request from the session document,
+    so a report can't go stale or linger on disk after a session is deleted.
+    """
+    session = await _get_owned_session(db, session_id, str(current_user["_id"]))
+
+    pdf = await asyncio.to_thread(
+        report_pdf.build,
+        session,
+        session.get("strengths", []),
+        session.get("improvements", []),
+        current_user.get("name"),
+    )
+    started = session["started_at"].strftime("%Y-%m-%d")
+    filename = f"aria-report-{session['role'].lower()}-{started}.pdf"
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.websocket("/{session_id}/stream")

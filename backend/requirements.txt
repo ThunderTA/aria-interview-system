@@ -26,3 +26,5 @@ cryptography==50.0.1
 # onnxruntime (already installed by faster-whisper). Model files download on
 # first start.
 kokoro-onnx==0.6.1
+# Downloadable session report. Pure Python, uses the built-in fonts.
+fpdf2==2.8.9

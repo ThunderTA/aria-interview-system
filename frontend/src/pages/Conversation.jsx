@@ -76,7 +76,7 @@ export default function Conversation() {
 
   const camera = useCamera();
   const recorder = useAudioRecorder();
-  const voice = useInterviewerVoice();
+  const voice = useInterviewerVoice({ voice: session?.voice });
 
   // Once ended (finish or confirmed leave), navigation shouldn't re-prompt.
   const settledRef = useRef(false);
@@ -108,9 +108,8 @@ export default function Conversation() {
     onIdentity: setIdentity,
   });
 
-  // Where the candidate is looking. Sampled more often than identity and kept
-  // apart from it: a glance at a second screen says nothing about who's sitting
-  // there, so it never touches the identity verdict.
+  // Gaze checks run more often than identity checks, and never affect the
+  // identity verdict.
   const { attention } = useAttentionChecks({
     sessionId: session?.id,
     camera,
@@ -422,8 +421,7 @@ export default function Conversation() {
                 {!started && (
                   <p className="turn-panel__lead">
                     ARIA will ask each question out loud and respond to what you say. Answer as you
-                    would in a real interview, then pause for about three seconds — or press Done —
-                    when you've finished.
+                    would in a real interview, then pause for about three seconds - or press Done - when you've finished.
                   </p>
                 )}
                 <div className="turn-panel__actions">
@@ -443,7 +441,7 @@ export default function Conversation() {
                   )}
                 </div>
                 {!started && (
-                  <p className="turn-panel__hint">Headphones help — ARIA's voice won't echo into your microphone.</p>
+                  <p className="turn-panel__hint">Headphones help - ARIA's voice won't echo into your microphone.</p>
                 )}
                 {recorder.error && <p className="recorder__error">{recorder.error}</p>}
               </div>
@@ -453,7 +451,7 @@ export default function Conversation() {
               <div className="turn-panel turn-panel--row">
                 <p className="turn-panel__hint">
                   {voice.engine === "browser"
-                    ? "Using your browser's voice — the local interviewer voice isn't available."
+                    ? "Using your browser's voice - the local interviewer voice isn't available."
                     : "Your turn starts as soon as ARIA finishes."}
                 </p>
                 <button type="button" className="turn-secondary" onClick={voice.cancel}>
@@ -469,8 +467,8 @@ export default function Conversation() {
                   <span className="recorder__time">{formatTime(recorder.seconds)}</span>
                   <span className="recorder__status">
                     {recorder.heardSpeech
-                      ? "Listening — pause for a few seconds when you're done"
-                      : "Your turn — start whenever you're ready"}
+                      ? "Listening - pause for a few seconds when you're done"
+                      : "Your turn - start whenever you're ready"}
                   </span>
                 </div>
 
@@ -497,8 +495,8 @@ export default function Conversation() {
                 <span className="turn-spinner" aria-hidden="true" />
                 <p className="turn-panel__hint">
                   {stage === "finishing"
-                    ? "Scoring your last answers and preparing your report…"
-                    : "ARIA is listening back to what you said…"}
+                    ? "Scoring your last answers and preparing your report..."
+                    : "ARIA is listening back to what you said..."}
                 </p>
               </div>
             )}
@@ -567,8 +565,8 @@ export default function Conversation() {
                     >
                       <span className="question-track__index">{i + 1}</span>
                       <span className="question-track__topic">{q.topic ?? "Question"}</span>
-                      <span className="question-track__score" title={scoring ? "Scoring…" : undefined}>
-                        {q.content_score != null ? Math.round(q.content_score) : scoring ? "…" : "—"}
+                      <span className="question-track__score" title={scoring ? "Scoring..." : undefined}>
+                        {q.content_score != null ? Math.round(q.content_score) : scoring ? "..." : " - "}
                       </span>
                     </li>
                   );
@@ -598,7 +596,7 @@ export default function Conversation() {
         title="Leave this interview?"
         confirmLabel={
           leaving
-            ? "Leaving…"
+            ? "Leaving..."
             : answeredCount >= MIN_ANSWERED_FOR_HISTORY
               ? "Leave & save"
               : "Leave without saving"

@@ -1,12 +1,23 @@
 import apiClient from "./client";
 
-export async function createSession(role, startingDifficulty = null, mode = "classic") {
+export async function createSession(role, startingDifficulty = null, mode = "classic", voice = null) {
   const { data } = await apiClient.post("/sessions", {
     role,
     starting_difficulty: startingDifficulty,
     mode,
+    voice,
   });
   return data;
+}
+
+/** The report as a PDF, built on request. Returns the blob and its filename. */
+export async function downloadReportPdf(sessionId) {
+  const response = await apiClient.get(`/sessions/${sessionId}/report/pdf`, {
+    responseType: "blob",
+    timeout: 60000,
+  });
+  const match = /filename="([^"]+)"/.exec(response.headers["content-disposition"] ?? "");
+  return { blob: response.data, filename: match?.[1] ?? `aria-report-${sessionId}.pdf` };
 }
 
 export async function getSession(sessionId) {
@@ -19,8 +30,8 @@ export async function submitConversationTurn(sessionId, blob, extension = "webm"
   const form = new FormData();
   form.append("audio", blob, `turn.${extension}`);
   frames.forEach((frame, i) => form.append("frames", frame, `frame-${i}.jpg`));
-  // Transcription plus the interviewer's reply — and the next question, when
-  // the interviewer moves on — all on local models.
+  // Transcription plus the interviewer's reply - and the next question, when
+  // the interviewer moves on - all on local models.
   const { data } = await apiClient.post(`/sessions/${sessionId}/conversation/turn`, form, {
     timeout: 180000,
   });
@@ -60,7 +71,7 @@ export async function verifyIdentity(sessionId, frames, { continueUnmatched = fa
   return data;
 }
 
-/** Proceed without verification — the backend only allows it while face analysis can't run. */
+/** Proceed without verification - the backend only allows it while face analysis can't run. */
 export async function skipIdentity(sessionId) {
   const { data } = await apiClient.post(`/sessions/${sessionId}/identity/skip`);
   return data;

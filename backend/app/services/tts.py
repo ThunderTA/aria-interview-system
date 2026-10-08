@@ -4,7 +4,7 @@ Kokoro (82M parameters, Apache-2.0) runs through onnxruntime, which
 faster-whisper already installed, so the interviewer's voice keeps ARIA's
 "no API key, no per-interview cost, works offline" property. On an Apple M4 it
 synthesises about five times faster than real time and a first sentence in
-under half a second — fast enough for the client to start speaking a reply
+under half a second - fast enough for the client to start speaking a reply
 sentence by sentence rather than waiting for all of it.
 
 Audio is generated per request and returned; nothing is written to disk.
@@ -38,6 +38,19 @@ MAX_TEXT_CHARS = 800
 DOWNLOAD_TIMEOUT_SECONDS = 120
 RETRY_AFTER_FAILURE_SECONDS = 60
 
+# A curated handful rather than all 28 English voices Kokoro ships: enough that
+# nobody is stuck with a voice they dislike, few enough to pick from in one
+# glance. Labels describe what a candidate actually notices.
+VOICES = (
+    {"id": "af_heart", "label": "Maya", "accent": "American", "tone": "warm"},
+    {"id": "af_bella", "label": "Bella", "accent": "American", "tone": "bright"},
+    {"id": "am_michael", "label": "Michael", "accent": "American", "tone": "measured"},
+    {"id": "am_fenrir", "label": "Felix", "accent": "American", "tone": "deep"},
+    {"id": "bf_emma", "label": "Emma", "accent": "British", "tone": "crisp"},
+    {"id": "bm_george", "label": "George", "accent": "British", "tone": "low"},
+)
+VOICE_IDS = frozenset(voice["id"] for voice in VOICES)
+
 _MARKUP = re.compile(r"[*_`#>|~\[\]{}]+")
 
 
@@ -50,6 +63,11 @@ _last_failure_at = 0.0
 _load_lock = threading.Lock()
 # The phonemizer underneath Kokoro isn't documented as thread-safe.
 _synth_lock = threading.Lock()
+
+
+def resolve_voice(voice: str | None) -> str:
+    """The requested voice if it's one we offer, else the configured default."""
+    return voice if voice in VOICE_IDS else settings.tts_voice
 
 
 def _load():
@@ -71,8 +89,12 @@ def _load():
                     for key, (name, digest) in _FILES.items()
                 }
                 engine = Kokoro(str(paths["model"]), str(paths["voices"]))
-                if settings.tts_voice not in engine.get_voices():
+                available = set(engine.get_voices())
+                missing = VOICE_IDS - available
+                if settings.tts_voice not in available:
                     raise SpeechUnavailable(f"Unknown interviewer voice {settings.tts_voice!r}.")
+                if missing:
+                    logger.warning("Voice model is missing offered voices: %s", sorted(missing))
             except SpeechUnavailable:
                 _last_failure_at = time.monotonic()
                 raise
@@ -80,7 +102,7 @@ def _load():
                 _last_failure_at = time.monotonic()
                 raise SpeechUnavailable("The interviewer's voice couldn't be loaded.") from exc
             _engine = engine
-            logger.info("Interviewer voice ready (%s)", settings.tts_voice)
+            logger.info("Interviewer voice ready (default %s)", settings.tts_voice)
     return _engine
 
 
@@ -97,10 +119,10 @@ def clean_text(text: str) -> str:
     return " ".join(_MARKUP.sub(" ", text).split())
 
 
-def _synthesize_sync(text: str) -> bytes:
+def _synthesize_sync(text: str, voice: str) -> bytes:
     engine = _load()
     with _synth_lock:
-        samples, rate = engine.create(text, voice=settings.tts_voice, speed=settings.tts_speed, lang="en-us")
+        samples, rate = engine.create(text, voice=voice, speed=settings.tts_speed, lang="en-us")
 
     pcm = (np.clip(samples, -1.0, 1.0) * 32767).astype("<i2")
     buffer = io.BytesIO()
@@ -112,13 +134,13 @@ def _synthesize_sync(text: str) -> bytes:
     return buffer.getvalue()
 
 
-async def synthesize(text: str) -> bytes:
+async def synthesize(text: str, voice: str | None = None) -> bytes:
     """WAV audio of `text`. Raises SpeechUnavailable, or ValueError for empty text."""
     cleaned = clean_text(text)
     if not cleaned:
         raise ValueError("There's nothing to say.")
     try:
-        return await asyncio.to_thread(_synthesize_sync, cleaned)
+        return await asyncio.to_thread(_synthesize_sync, cleaned, resolve_voice(voice))
     except SpeechUnavailable:
         raise
     except Exception as exc:

@@ -80,7 +80,7 @@ function speakWithBrowser(text, isCurrent) {
  * fails, it switches to the browser's built-in speech for the rest of the
  * interview rather than going silent.
  */
-export default function useInterviewerVoice() {
+export default function useInterviewerVoice({ voice } = {}) {
   const [speaking, setSpeaking] = useState(false);
   const [engine, setEngine] = useState("local");
 
@@ -119,7 +119,7 @@ export default function useInterviewerVoice() {
           // All requested at once: synthesis outpaces playback, so each clip is
           // ready by the time the one before it ends.
           const requests = sentences.map((sentence) =>
-            synthesizeSpeech(sentence, { signal: controller.signal })
+            synthesizeSpeech(sentence, { voice, signal: controller.signal })
           );
           requests.forEach((request) => request.catch(() => {}));
 
@@ -147,7 +147,7 @@ export default function useInterviewerVoice() {
         if (isCurrent()) setSpeaking(false);
       }
     },
-    [cancel]
+    [cancel, voice]
   );
 
   return { speak, cancel, speaking, engine };
