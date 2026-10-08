@@ -34,7 +34,7 @@ export default function AttentionReport({ attention }) {
             key={state}
             className={`attention-bar__fill attention-bar__fill--${state}`}
             style={{ width: `${share}%` }}
-            title={`${ATTENTION_LABELS[state]} — ${Math.round(share)}%`}
+            title={`${ATTENTION_LABELS[state]} - ${Math.round(share)}%`}
           />
         ))}
       </div>

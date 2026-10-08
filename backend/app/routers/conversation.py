@@ -89,7 +89,7 @@ async def conversation_turn(
         raise HTTPException(status.HTTP_409_CONFLICT, "This interview has already wrapped up.") from exc
     except conversation_service.ConversationConflict as exc:
         raise HTTPException(
-            status.HTTP_409_CONFLICT, "That reply arrived twice — the conversation has already moved on."
+            status.HTTP_409_CONFLICT, "That reply arrived twice - the conversation has already moved on."
         ) from exc
 
     return TurnResult(

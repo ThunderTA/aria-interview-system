@@ -25,5 +25,5 @@ export const ATTENTION_TONES = {
 };
 
 export function attentionLabel(state, fallback) {
-  return ATTENTION_LABELS[state] ?? fallback ?? "Checking…";
+  return ATTENTION_LABELS[state] ?? fallback ?? "Checking...";
 }

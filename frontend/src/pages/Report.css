@@ -26,7 +26,7 @@
   }
 }
 
-/* Header band, matching the dashboard's — a real header, not a bento tile */
+/* Header band, matching the dashboard's - a real header, not a bento tile */
 .report-header {
   display: flex;
   align-items: center;

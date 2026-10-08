@@ -111,7 +111,7 @@
   transform: scaleX(-1);
 }
 
-/* Where to put your face — a guide, not a detector overlay. */
+/* Where to put your face - a guide, not a detector overlay. */
 .identity-gate__guide {
   position: absolute;
   top: 50%;

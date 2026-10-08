@@ -7,11 +7,9 @@ const DEFAULT_INTERVAL_MS = 4000;
 const MAX_REQUEST_FAILURES = 3;
 
 /**
- * Live "where are you looking" readout while an interview is running.
- *
- * Separate from the identity checks: this runs more often, answers a different
- * question, and never touches the identity verdict. Nothing is sent while the
- * camera is off.
+ * Live gaze readout while an interview is running. Runs more often than the
+ * identity checks and never affects the identity verdict; sends nothing while
+ * the camera is off.
  */
 export default function useAttentionChecks({ sessionId, camera, active, intervalMs = DEFAULT_INTERVAL_MS }) {
   const [attention, setAttention] = useState(null);

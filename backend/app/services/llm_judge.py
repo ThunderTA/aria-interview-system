@@ -2,9 +2,9 @@
 
 Two responsibilities, both driven by the local LLM (see llm_client.py):
 
-1. `generate_question` — produce the next question for a role at a given
+1. `generate_question` - produce the next question for a role at a given
    difficulty, optionally grounded in the candidate's resume skills.
-2. `score_answer` — grade a transcribed answer against a fixed rubric and
+2. `score_answer` - grade a transcribed answer against a fixed rubric and
    return both the numeric scores and the feedback text shown to the
    candidate. One call does both, since the feedback is needed anyway.
 
@@ -151,7 +151,7 @@ async def score_answer(
     system_prompt = (
         f"You are grading a candidate's spoken answer in {brief}. "
         "The text is an automatic transcript of speech, so ignore punctuation, "
-        "filler words and minor transcription errors — grade the substance only. "
+        "filler words and minor transcription errors - grade the substance only. "
         "Be fair but honest: do not inflate scores for vague or incorrect answers."
     )
 
@@ -159,7 +159,7 @@ async def score_answer(
     if follow_ups:
         lines = "\n".join(f"Interviewer: {q}\nCandidate: {a}" for q, a in follow_ups)
         exchange = (
-            "\n\nThe interviewer then asked follow-up questions. Grade the whole exchange — "
+            "\n\nThe interviewer then asked follow-up questions. Grade the whole exchange - "
             "a follow-up reply can add depth or correct an earlier mistake:\n" + lines
         )
 

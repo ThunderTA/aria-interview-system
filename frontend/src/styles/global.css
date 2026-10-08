@@ -59,7 +59,7 @@ button {
   font-size: 16px;
 }
 
-/* Gradient text for large display numbers (2rem+/bold) — uses --gradient-pop,
+/* Gradient text for large display numbers (2rem+/bold) - uses --gradient-pop,
    not --gradient-brand: the button gradient's stops don't clear large-text
    contrast on a light page, --gradient-pop is the same warm direction
    deepened until they do. Not for body-sized text. */
@@ -70,7 +70,7 @@ button {
   color: transparent;
 }
 
-/* Colored icon badge used by FeatureIcons.jsx's IconChip — shared across
+/* Colored icon badge used by FeatureIcons.jsx's IconChip - shared across
    the landing page and dashboard, so it lives here rather than in either
    page's own stylesheet. */
 .icon-chip {

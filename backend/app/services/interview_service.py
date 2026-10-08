@@ -25,7 +25,7 @@ QUESTIONS_PER_SESSION = 5
 Q_TABLE_ID = "shared_policy"
 
 # A session ending with fewer answered questions than this is too thin to be
-# a meaningful data point — it gets marked discarded instead of completed, so
+# a meaningful data point - it gets marked discarded instead of completed, so
 # it never appears in history or counts toward the average score.
 MIN_ANSWERED_FOR_HISTORY = 2
 
@@ -68,7 +68,7 @@ def performance_scores(questions: list[dict]) -> list[float]:
 
     The rubric score where it exists; otherwise, in a conversational interview
     whose last answer is still being scored, the interviewer's in-the-moment
-    impression of it — so the next question doesn't have to wait for the rubric.
+    impression of it - so the next question doesn't have to wait for the rubric.
     """
     return [
         q["content_score"] if q.get("content_score") is not None else q["provisional_score"]
@@ -85,12 +85,11 @@ async def build_next_question(
 ) -> dict:
     """Generate the next question at the difficulty the RL policy recommends.
 
-    `starting_difficulty` only matters for the first question of a session —
+    `starting_difficulty` only matters for the first question of a session:
     it's the candidate's explicit choice from Setup, overriding the
     resume-derived default. Every question after that is chosen by the RL
-    policy regardless, since the whole point of adapting is that a starting
-    guess (candidate's or the resume's) stops being the reference point once
-    there's real performance to react to.
+    policy regardless, since a starting guess stops being the reference point
+    once there is real performance to react to.
     """
     questions = session.get("questions", [])
     skills, resume_difficulty = await get_candidate_context(db, user_id)
@@ -135,7 +134,7 @@ async def score_and_advance(
     `index` defaults to the last question; a conversational interview passes
     it explicitly, since the next question may already have been asked by the
     time an earlier answer is scored. Returns the scored question dict. Does
-    not persist — the caller decides how to write it.
+    not persist - the caller decides how to write it.
     """
     questions = session["questions"]
     position = len(questions) - 1 if index is None else index

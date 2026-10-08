@@ -1,15 +1,12 @@
 """Live attention tracking: what the candidate is showing the camera right now.
 
-A frame arrives every few seconds while the camera is on — separate from the
-identity checks, which run less often and answer a different question ("is this
-still the same person?" rather than "where are they looking?"). Each frame is
-classified by cv_analysis from head orientation plus where the eyes point, and
-folded into the counters here.
+A frame arrives every few seconds while the camera is on, separate from the
+less frequent identity checks. Each one is classified by cv_analysis from head
+orientation plus eye direction, then folded into the counters here.
 
-One glance away is normal and is only ever reported as a share of time. A long
-unbroken spell of looking elsewhere opens an episode, which raises a quiet
-warning during the interview and is listed in the report. Identity flags are
-left alone: looking at a second screen says nothing about who is sitting there.
+A single glance away only moves a counter. An unbroken spell of looking
+elsewhere opens an episode, which warns the candidate during the interview and
+is listed in the report. The identity verdict is never affected.
 """
 
 from datetime import datetime, timezone
@@ -119,11 +116,11 @@ def summary(state: dict) -> dict:
     warning = None
     if open_episode:
         state_name = open_episode["state"]
-        # "Not in frame — being out of frame" says the same thing twice.
+        # "Not in frame - being out of frame" says the same thing twice.
         reason = STATE_REASONS.get(state_name) if state_name != NO_FACE else None
         warning = (
             f"{STATE_LABELS[state_name]} for a while"
-            + (f" — {reason}." if reason else ".")
+            + (f" - {reason}." if reason else ".")
             + " This is noted in your report."
         )
 
@@ -159,6 +156,6 @@ def finalise(state: dict, ended_at: datetime) -> dict:
         state["note"] = (
             f"You looked at the camera for {on_camera:.0f}% of the interview. "
             f"You spent {share:.0f}% of the checks {AWAY_PHRASES[worst]}"
-            + (f" — {reason}." if reason and worst != "no_face" else ".")
+            + (f" - {reason}." if reason and worst != "no_face" else ".")
         )
     return state

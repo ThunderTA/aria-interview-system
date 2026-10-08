@@ -38,7 +38,7 @@ PAUSE_THRESHOLD_SECONDS = 2.0
 # Fillers per 100 words.
 FILLER_RATE_GOOD, FILLER_RATE_POOR = 2.0, 8.0
 
-# Long pauses per minute of speech. Pausing to think is normal — roughly one
+# Long pauses per minute of speech. Pausing to think is normal - roughly one
 # every 20 seconds is unremarkable, while one every 6 seconds is visibly
 # halting.
 PAUSE_RATE_GOOD, PAUSE_RATE_POOR = 3.0, 10.0
@@ -99,7 +99,7 @@ def analyse(transcript: Transcript) -> dict:
 
 
 def combine(turns: list[dict | None]) -> dict | None:
-    """Delivery across several spoken turns — an answer and its follow-up replies.
+    """Delivery across several spoken turns - an answer and its follow-up replies.
 
     Recomputed from summed counts rather than averaged scores, so a ten-second
     aside can't weigh as much as a two-minute answer. Pauses are only counted

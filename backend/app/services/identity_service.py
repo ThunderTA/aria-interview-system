@@ -433,7 +433,7 @@ def classify(analysis: FaceAnalysis, references: list[tuple[np.ndarray, float]])
         return IdentityOutcome.multiple_faces, None
     if analysis.outcome is not FrameOutcome.ok:
         # A face too dark, blurred or distant to embed reliably is treated as
-        # not seen — guessing an identity from it would manufacture mismatches.
+        # not seen - guessing an identity from it would manufacture mismatches.
         return IdentityOutcome.face_not_detected, analysis.hint
     if any(face_identity.similarity(analysis.embedding, ref) >= t for ref, t in references):
         return IdentityOutcome.match, None
@@ -564,7 +564,7 @@ def finalise(state: dict, ended_at: datetime) -> dict:
             status, reason = IdentityStatus.inconclusive, "Too few checks saw a clear face to confirm identity."
         elif expected >= settings.identity_min_conclusive_checks and coverage < settings.identity_min_check_coverage:
             status = IdentityStatus.inconclusive
-            reason = "Identity checks stopped for much of the session — the camera was off or checks were interrupted."
+            reason = "Identity checks stopped for much of the session - the camera was off or checks were interrupted."
         elif state["face_not_detected"] * 2 > checks:
             status, reason = IdentityStatus.inconclusive, "Your face wasn't visible for most of the checks."
         elif matches / conclusive < settings.identity_verified_min_match_rate:

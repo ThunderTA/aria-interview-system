@@ -64,7 +64,7 @@ export default function Dashboard() {
   useEffect(() => {
     getCurrentUser()
       .then(setUser)
-      .catch(() => setError("Could not load your profile — please log in again."));
+      .catch(() => setError("Could not load your profile - please log in again."));
     listSessions()
       .then(setSessions)
       .catch(() => setSessions([]));
@@ -89,9 +89,9 @@ export default function Dashboard() {
 
   const summary = scored.length
     ? `You've completed ${scored.length} session${scored.length === 1 ? "" : "s"}, averaging ${averageScore}${
-        best != null ? ` — your best so far is ${Math.round(best)}` : ""
+        best != null ? ` - your best so far is ${Math.round(best)}` : ""
       }.`
-    : "You haven't practised yet — your first session takes about ten minutes.";
+    : "You haven't practised yet - your first session takes about ten minutes.";
 
   return (
     <div className="dashboard-shell">
@@ -109,7 +109,7 @@ export default function Dashboard() {
       )}
 
       <div className="dashboard-header">
-        <div className="avatar avatar--lg">{user ? initials(user.name) : "…"}</div>
+        <div className="avatar avatar--lg">{user ? initials(user.name) : "..."}</div>
         <div>
           <p className="dashboard-header__date">{TODAY}</p>
           <h1 className="dashboard-header__greeting">
@@ -150,7 +150,7 @@ export default function Dashboard() {
           </IconChip>
           <p className="bento-tile__eyebrow">Average score</p>
           <p className={`bento-stat__value${averageScore == null ? " bento-stat__value--muted" : " gradient-text"}`}>
-            {averageScore ?? "—"}
+            {averageScore ?? " - "}
           </p>
         </section>
 
@@ -160,7 +160,7 @@ export default function Dashboard() {
           </IconChip>
           <p className="bento-tile__eyebrow">Practice streak</p>
           <p className={`bento-stat__value${streak === 0 ? " bento-stat__value--muted" : " gradient-text"}`}>
-            {streak === 0 ? "—" : `${streak}d`}
+            {streak === 0 ? " - " : `${streak}d`}
           </p>
         </section>
 
@@ -170,7 +170,7 @@ export default function Dashboard() {
           </IconChip>
           <p className="bento-tile__eyebrow">Last session</p>
           <p className={`bento-stat__value bento-stat__value--small${scored.length === 0 ? " bento-stat__value--muted" : ""}`}>
-            {scored.length ? new Date(scored[0].started_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+            {scored.length ? new Date(scored[0].started_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : " - "}
           </p>
         </section>
 

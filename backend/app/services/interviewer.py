@@ -1,7 +1,7 @@
 """The interviewer's spoken side of a conversational interview.
 
 Separate from llm_judge on purpose: grading is slow, careful and never read
-aloud, whereas everything here is spoken mid-conversation — so it is short,
+aloud, whereas everything here is spoken mid-conversation - so it is short,
 runs at interactive priority, and is written for the ear.
 """
 
@@ -30,9 +30,9 @@ TRANSITIONS = (
     "Alright, thank you.",
 )
 
-# An interviewer who says "that's a great approach" is grading out loud, which
-# coaches the candidate mid-interview. Models slip into it despite the prompt,
-# so an evaluative opening sentence is removed before it's spoken.
+# Praise like "that's a great approach" grades the candidate out loud and
+# coaches them mid-interview. The model does it anyway, so an evaluative
+# opening sentence is stripped before the reply is spoken.
 _PRAISE_OPENER = re.compile(
     r"^\s*(?:"
     r"that(?:'s| is| was| sounds(?: like)?| seems(?: like)?)\s+(?:a\s+|an\s+)?(?:really\s+|very\s+)?"
@@ -50,7 +50,7 @@ def _persona(role: str) -> str:
         f"You are ARIA, a warm, professional interviewer on a live voice call, conducting {brief}. "
         "Everything you write is read aloud by a text-to-speech voice, so write plain spoken "
         "sentences: no lists, markdown, emojis, parentheses or code. Keep it brief. Never give "
-        "away answers or hints, and never evaluate the candidate out loud — do not call anything "
+        "away answers or hints, and never evaluate the candidate out loud - do not call anything "
         "good, great, solid or interesting. A neutral 'thanks' or 'got it' is fine."
     )
 
@@ -78,7 +78,7 @@ async def reply_to_introduction(role: str, introduction: str) -> str:
         "You asked the candidate to introduce themselves. They said:\n"
         f"{introduction}\n\n"
         "Reply with ONE short sentence acknowledging one specific thing they mentioned. "
-        "Do not ask a question — the first interview question follows straight after.",
+        "Do not ask a question - the first interview question follows straight after.",
         REPLY_SCHEMA,
         temperature=0.6,
         max_tokens=50,
@@ -146,7 +146,7 @@ async def next_move(
         "Decide what to do next. Choose one action:\n"
         + "\n".join(options)
         + "\n\nAlso give `quality`: a strict 0-10 rating of how well the candidate has answered the "
-        "question so far — 0 to 3 if vague, off-topic or wrong, 5 if adequate, 8 or more only if "
+        "question so far - 0 to 3 if vague, off-topic or wrong, 5 if adequate, 8 or more only if "
         "correct, specific and complete."
     )
 
@@ -164,7 +164,7 @@ async def next_move(
 
 
 async def answer_candidate_question(role: str, message: str) -> str:
-    """Respond to "do you have any questions for me?" — briefly, without the goodbye."""
+    """Respond to "do you have any questions for me?" - briefly, without the goodbye."""
     result = await chat_json(
         _persona(role),
         "You asked whether the candidate has any questions for you. They said:\n"
@@ -172,7 +172,7 @@ async def answer_candidate_question(role: str, message: str) -> str:
         "If they asked something, answer briefly and honestly in one or two sentences. You are a "
         "practice interviewer, so for specifics about a real company or team, say those are best "
         "asked in their actual interview. If they have no questions, just say 'No problem.' "
-        "Do not wish them luck, thank them or say goodbye — a closing line that does all of "
+        "Do not wish them luck, thank them or say goodbye - a closing line that does all of "
         "that follows.",
         REPLY_SCHEMA,
         temperature=0.5,

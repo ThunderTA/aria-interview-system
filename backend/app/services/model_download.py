@@ -31,7 +31,7 @@ def ensure_model_file(path: Path, url: str, expected_sha256: str, *, timeout: fl
 
     path.parent.mkdir(parents=True, exist_ok=True)
     partial = path.with_name(path.name + ".part")
-    logger.info("Downloading model file %s…", path.name)
+    logger.info("Downloading model file %s...", path.name)
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response, partial.open("wb") as out:
             while chunk := response.read(1 << 20):

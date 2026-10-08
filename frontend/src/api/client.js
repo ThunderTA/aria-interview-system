@@ -23,7 +23,7 @@ async function refreshAccessToken() {
   const refreshToken = localStorage.getItem("aria_refresh_token");
   if (!refreshToken) throw new Error("No refresh token");
 
-  // Bare axios, not apiClient — this must not recurse through the interceptor.
+  // Bare axios, not apiClient - this must not recurse through the interceptor.
   const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
     refresh_token: refreshToken,
   });

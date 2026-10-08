@@ -28,7 +28,7 @@ function errorCodeFor(err) {
 }
 
 const OPTIONAL_MESSAGES = {
-  denied: "Camera access was blocked. The interview still works — only the visual scores will be missing.",
+  denied: "Camera access was blocked. The interview still works - only the visual scores will be missing.",
   not_found: "No camera was found. The interview still works without it.",
   in_use: "The camera is being used by another app. Close it and try again.",
   unknown: "The camera couldn't be started.",

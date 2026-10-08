@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import "./ConfirmDialog.css";
 
 /**
- * A styled confirm/cancel modal — used in place of window.confirm() so it
+ * A styled confirm/cancel modal - used in place of window.confirm() so it
  * matches the rest of the app instead of looking like a generic browser
  * prompt. Cancel is the button that gets focus: leaving is the consequential
  * action here, so the safe choice should be the default one Enter/Tab lands
@@ -10,7 +10,7 @@ import "./ConfirmDialog.css";
  *
  * `busy` locks both buttons and the overlay/Escape dismissal while onConfirm
  * is still running. Without it, a click on Cancel mid-confirm closes the
- * dialog but leaves the in-flight onConfirm free to finish and act anyway —
+ * dialog but leaves the in-flight onConfirm free to finish and act anyway:
  * its callback was already captured when the click happened, so closing the
  * dialog doesn't cancel it, it just hides the fact that it's still going to
  * fire.

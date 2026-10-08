@@ -40,7 +40,7 @@ const FEATURES = [
     icon: EyeIcon,
     tint: "signal",
     title: "Optional visual feedback",
-    body: "Turn on your camera for eye contact, engagement, and posture. Frames are analysed and discarded — never stored, never uploaded.",
+    body: "Turn on your camera for eye contact, engagement, and posture. Frames are analysed and discarded - never stored, never uploaded.",
   },
   {
     icon: ShieldIcon,
@@ -68,7 +68,7 @@ const STACK = [
     icon: MicIcon,
     tint: "signal",
     title: "Speech recognition",
-    body: "Whisper transcribes your spoken answer locally, with word-level timing — the same timing that pace and pause measurements are computed from.",
+    body: "Whisper transcribes your spoken answer locally, with word-level timing - the same timing that pace and pause measurements are computed from.",
   },
   {
     icon: BrainIcon,
@@ -94,7 +94,7 @@ const STEPS = [
   {
     n: "01",
     title: "Upload your resume",
-    body: "Skills, role, and seniority are inferred automatically — required before your first session so questions are grounded in your background.",
+    body: "Skills, role, and seniority are inferred automatically - required before your first session so questions are grounded in your background.",
   },
   {
     n: "02",
@@ -156,7 +156,7 @@ export default function Landing() {
               you're actually performing.
             </h1>
             <p className="landing-hero__sub">
-              ARIA runs a full mock interview — voice, and camera if you choose — then scores
+              ARIA runs a full mock interview - voice, and camera if you choose - then scores
               what you said and how you said it. The difficulty adjusts to you in real time, and
               everything runs on your own device.
             </p>
@@ -207,7 +207,7 @@ export default function Landing() {
         <Reveal as="section" className="landing-trust">
           <p>
             No API keys. No account with a third-party model provider. Speech-to-text, question
-            scoring, and visual analysis are all performed by models running locally — nothing
+            scoring, and visual analysis are all performed by models running locally - nothing
             you say or show is sent off your machine.
           </p>
         </Reveal>
@@ -293,7 +293,7 @@ export default function Landing() {
             </h2>
             <p className="landing-section__sub">
               A policy trained during practice sessions decides whether to raise or lower the
-              difficulty — not a fixed script. Try both states below.
+              difficulty - not a fixed script. Try both states below.
             </p>
           </Reveal>
 

@@ -25,5 +25,5 @@ async def close_mongo_connection() -> None:
 
 def get_db() -> AsyncIOMotorDatabase:
     if _db is None:
-        raise RuntimeError("Database not initialized — connect_to_mongo() must run first")
+        raise RuntimeError("Database not initialized - connect_to_mongo() must run first")
     return _db

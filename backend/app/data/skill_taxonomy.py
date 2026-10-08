@@ -151,7 +151,7 @@ SKILL_TAXONOMY: dict[str, dict[str, list[str]]] = {
 # Category -> weight signalling how strongly a match points at each role.
 # A rarer, more role-specific category (product, qa, mlops, data_analytics,
 # hr_domain) outweighs a broad one (language, cs_fundamentals) that half of
-# all resumes will contain regardless of which role they're aiming for —
+# all resumes will contain regardless of which role they're aiming for. It is
 # the same precedent the old HR-weighting rule set.
 ROLE_SIGNALS: dict[str, dict[str, float]] = {
     "SDE": {

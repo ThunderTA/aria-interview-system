@@ -1,6 +1,6 @@
 """Face detection and face embeddings for candidate identity verification.
 
-Two models from OpenCV's model zoo, run through OpenCV's DNN module — already
+Two models from OpenCV's model zoo, run through OpenCV's DNN module - already
 installed as a MediaPipe dependency, so this adds no new package:
 
   YuNet  face_detection_yunet_2023mar    finds faces and five landmarks
@@ -88,7 +88,7 @@ class FrameOutcome(str, Enum):
 @dataclass
 class FaceAnalysis:
     outcome: FrameOutcome
-    # too_dark / blurry / too_small / unreadable_frame — shown as guidance.
+    # too_dark / blurry / too_small / unreadable_frame - shown as guidance.
     hint: str | None = None
     # Width of the face in source pixels, used to pick the best resume photo.
     face_px: float = 0.0
@@ -278,7 +278,7 @@ def extract_resume_photo(filename: str, content: bytes) -> ResumePhoto:
     """Find a usable profile photo in a resume and embed it.
 
     Raises FaceEngineUnavailable only if the resume has images to analyse and
-    the models can't run — a resume without images needs no models at all.
+    the models can't run - a resume without images needs no models at all.
     """
     suffix = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
     if suffix == "pdf":
@@ -321,8 +321,8 @@ def extract_resume_photo(filename: str, content: bytes) -> ResumePhoto:
     for reason in _UNUSABLE_PRIORITY:
         if problems[reason]:
             return ResumePhoto(PhotoStatus.unusable, reason)
-    # No face was ever seen, so this stays "not found" — a dark logo shouldn't
-    # be reported as a bad photo — but a dark image is worth mentioning.
+    # No face was ever seen, so this stays "not found" - a dark logo shouldn't
+    # be reported as a bad photo - but a dark image is worth mentioning.
     return ResumePhoto(PhotoStatus.not_found, "too_dark" if dark_without_face else "no_face")
 
 

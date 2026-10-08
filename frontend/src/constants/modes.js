@@ -5,7 +5,7 @@ export const MODES = [
     short: "LIVE",
     label: "Conversational interview",
     description:
-      "ARIA asks each question out loud and responds to what you say, with follow-ups — like a real interview. Needs a microphone and speakers.",
+      "ARIA asks each question out loud and responds to what you say, with follow-ups - like a real interview. Needs a microphone and speakers.",
   },
   {
     id: "classic",

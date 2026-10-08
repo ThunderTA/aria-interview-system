@@ -41,7 +41,7 @@ export default function Interview() {
   const [leaving, setLeaving] = useState(false);
   const camera = useCamera();
   // Once the session has been explicitly ended (finish, or a confirmed
-  // leave), further navigation shouldn't re-prompt — it's already settled.
+  // leave), further navigation shouldn't re-prompt - it's already settled.
   const settledRef = useRef(false);
 
   // Kept apart from `session`: answer responses carry an identity snapshot
@@ -62,9 +62,8 @@ export default function Interview() {
     onIdentity: setIdentity,
   });
 
-  // Where the candidate is looking. Sampled more often than identity and kept
-  // apart from it: a glance at a second screen says nothing about who's sitting
-  // there, so it never touches the identity verdict.
+  // Gaze checks run more often than identity checks, and never affect the
+  // identity verdict.
   const { attention } = useAttentionChecks({
     sessionId: session?.id,
     camera,
@@ -82,14 +81,14 @@ export default function Interview() {
     }
   }, [gatePending, startCamera]);
 
-  // Reached directly without going through Setup — there's no session to run.
+  // Reached directly without going through Setup - there's no session to run.
   useEffect(() => {
     if (!session) navigate("/setup", { replace: true });
   }, [session, navigate]);
 
   // A native prompt as a backstop for tab close/refresh/typed-URL navigation,
   // which in-app navigation guarding can't intercept. Browsers show their own
-  // generic text regardless of what's set here — that's a platform security
+  // generic text regardless of what's set here - that's a platform security
   // restriction, not something stylable.
   useEffect(() => {
     if (!session || settledRef.current) return;
@@ -125,7 +124,7 @@ export default function Interview() {
       await endSession(session.id);
     } catch {
       // Best-effort: a failed end-call must not trap the candidate on the
-      // page — they're already trying to leave.
+      // page - they're already trying to leave.
     }
     settledRef.current = true;
     setLeaving(false);
@@ -146,7 +145,7 @@ export default function Interview() {
       const scoredSession = await submit();
       const justScored = scoredSession.questions[index];
 
-      // Show the score and feedback straight away — there's something to read
+      // Show the score and feedback straight away - there's something to read
       // while the next question is still being generated.
       setLastResult({
         score: justScored.content_score,
@@ -205,7 +204,7 @@ export default function Interview() {
       if (ended.status === "completed") {
         navigate("/report", { state: { sessionId: ended.id } });
       } else {
-        // Fewer than MIN_ANSWERED_FOR_HISTORY questions were answered — the
+        // Fewer than MIN_ANSWERED_FOR_HISTORY questions were answered - the
         // backend discarded it rather than creating a near-empty report.
         navigate("/dashboard", {
           state: { notice: `Only ${answeredCount} question${answeredCount === 1 ? "" : "s"} answered, so this session wasn't saved.` },
@@ -315,8 +314,7 @@ export default function Interview() {
 
                 {lastResult.transcript && (
                   <details className="answer-result__transcript">
-                    {/* Candidates should be able to check what was actually heard —
-                        a mis-transcription would otherwise look like a bad score. */}
+                    {/* Candidates should be able to check what was actually heard - a mis-transcription would otherwise look like a bad score. */}
                     <summary>What ARIA heard</summary>
                     <p>{lastResult.transcript}</p>
                   </details>
@@ -390,7 +388,7 @@ export default function Interview() {
                     <span className="question-track__index">{i + 1}</span>
                     <span className="question-track__topic">{q.topic ?? "Question"}</span>
                     <span className="question-track__score">
-                      {q.content_score != null ? Math.round(q.content_score) : "—"}
+                      {q.content_score != null ? Math.round(q.content_score) : " - "}
                     </span>
                   </li>
                 ))}
@@ -403,25 +401,25 @@ export default function Interview() {
                 <li>
                   <span>Speaking pace</span>
                   <span className="signal-list__value">
-                    {lastSpoken?.wpm != null ? `${Math.round(lastSpoken.wpm)} wpm` : "—"}
+                    {lastSpoken?.wpm != null ? `${Math.round(lastSpoken.wpm)} wpm` : " - "}
                   </span>
                 </li>
                 <li>
                   <span>Filler words</span>
                   <span className="signal-list__value">
-                    {lastSpoken?.filler_count != null ? lastSpoken.filler_count : "—"}
+                    {lastSpoken?.filler_count != null ? lastSpoken.filler_count : " - "}
                   </span>
                 </li>
                 <li>
                   <span>Long pauses</span>
                   <span className="signal-list__value">
-                    {lastSpoken?.pause_count != null ? lastSpoken.pause_count : "—"}
+                    {lastSpoken?.pause_count != null ? lastSpoken.pause_count : " - "}
                   </span>
                 </li>
                 <li>
                   <span>Eye contact</span>
                   <span className="signal-list__value">
-                    {lastVisual?.gaze_score != null ? `${Math.round(lastVisual.gaze_score)}%` : "—"}
+                    {lastVisual?.gaze_score != null ? `${Math.round(lastVisual.gaze_score)}%` : " - "}
                   </span>
                 </li>
                 <li>
@@ -429,7 +427,7 @@ export default function Interview() {
                   <span className="signal-list__value">
                     {lastVisual?.posture_score != null
                       ? Math.round(lastVisual.posture_score)
-                      : "—"}
+                      : " - "}
                   </span>
                 </li>
               </ul>
@@ -449,7 +447,7 @@ export default function Interview() {
         open={pendingLeave != null}
         title="Leave this interview?"
         confirmLabel={
-          leaving ? "Leaving…" : answeredCount >= MIN_ANSWERED_FOR_HISTORY ? "Leave & save" : "Leave without saving"
+          leaving ? "Leaving..." : answeredCount >= MIN_ANSWERED_FOR_HISTORY ? "Leave & save" : "Leave without saving"
         }
         cancelLabel="Keep going"
         tone={answeredCount >= MIN_ANSWERED_FOR_HISTORY ? "neutral" : "danger"}
@@ -460,7 +458,7 @@ export default function Interview() {
         {answeredCount >= MIN_ANSWERED_FOR_HISTORY ? (
           <p>
             You've answered <strong>{answeredCount} questions</strong>. Leaving now saves this
-            session to your history — you can review the report anytime, but you won't be able to
+            session to your history - you can review the report anytime, but you won't be able to
             continue answering.
           </p>
         ) : (

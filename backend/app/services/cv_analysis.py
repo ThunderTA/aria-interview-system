@@ -1,23 +1,22 @@
 """Visual analysis of the candidate during an answer.
 
 Runs MediaPipe's FaceLandmarker over frames sampled from the webcam (~1-2 fps,
-not full frame rate — gaze and posture don't change meaningfully between
+not full frame rate - gaze and posture don't change meaningfully between
 frames, and the extra compute buys nothing).
 
 Produces three scores, each 0-100:
   gaze        how much of the answer was spent looking at the camera
-  expression  visible engagement — eyes open, face animated, not fixed in a
+  expression  visible engagement - eyes open, face animated, not fixed in a
               frown. Deliberately NOT an emotion classifier; inferring felt
               emotion from a face is not reliable enough to grade someone on.
   posture     head steadiness and level framing, i.e. not drifting out of
               frame or tilting heavily. Head posture only, since a webcam
               headshot rarely shows enough body to judge more.
 
-…plus an attention breakdown: which way the candidate was looking, and for how
-long. Gaze combines head orientation with where the eyes sit in their sockets,
-which matters more than it sounds — someone whose head is turned 20 degrees
-away while their eyes look back at the lens *is* looking at the interviewer,
-and a head-only measure records that as never making eye contact.
+Plus an attention breakdown: which way the candidate was looking, and for how
+long. Gaze is head orientation combined with eye direction, not head alone: a
+head turned 20 degrees away with the eyes back on the lens is eye contact,
+which a head-only measure records as none.
 
 All processing is local and frames are discarded immediately after analysis;
 nothing visual is persisted, matching the proposal's data commitments.
@@ -73,7 +72,7 @@ TILT_TOLERANCE_DEG = 12.0
 MIN_FACE_PRESENCE = 0.5
 
 # Frames arrive about once a second, so one frame is about one second of the
-# answer — enough to report "you looked down for six seconds" honestly.
+# answer - enough to report "you looked down for six seconds" honestly.
 FRAME_SECONDS = 1.0
 # A glance is not a distraction; only a run this long is worth reporting.
 AWAY_EPISODE_SECONDS = 3.0
@@ -137,7 +136,7 @@ def _ensure_model() -> Path:
     import urllib.request
 
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    logger.info("Downloading MediaPipe face landmarker model…")
+    logger.info("Downloading MediaPipe face landmarker model...")
     try:
         urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
     except Exception as exc:  # pragma: no cover - network dependent

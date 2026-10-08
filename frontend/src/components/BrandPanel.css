@@ -102,7 +102,7 @@
 }
 
 .brand-panel__bar {
-  /* Button reset — this is a <button> so it gets a real click/tap target and
+  /* Button reset - this is a <button> so it gets a real click/tap target and
      works with the keyboard, not a styled <div>. */
   appearance: none;
   border: none;

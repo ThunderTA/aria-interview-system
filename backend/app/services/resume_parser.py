@@ -53,7 +53,7 @@ def _extract_pdf_text(content: bytes) -> str:
         reader = PdfReader(io.BytesIO(content))
         return "\n".join(page.extract_text() or "" for page in reader.pages)
     except PdfReadError as exc:
-        raise ResumeParseError("This PDF could not be read — it may be corrupted.") from exc
+        raise ResumeParseError("This PDF could not be read - it may be corrupted.") from exc
 
 
 def _extract_docx_text(content: bytes) -> str:
@@ -105,7 +105,7 @@ def infer_role(skills: list[dict[str, str]]) -> str:
     """Pick the interview role whose signals dominate the resume.
 
     Each matched skill casts a weighted vote for every role that lists its
-    category as a signal (see ROLE_SIGNALS) — a rarer, more role-specific
+    category as a signal (see ROLE_SIGNALS) - a rarer, more role-specific
     category (product, qa, mlops, data_analytics, hr_domain) outweighs a
     broad one (language, cs_fundamentals) that shows up on most resumes
     regardless of role. Falls back to SDE when nothing matches.

@@ -50,7 +50,7 @@ async def _get_model():
         if _model is None:
             from faster_whisper import WhisperModel
 
-            logger.info("Loading Whisper model %r…", settings.whisper_model)
+            logger.info("Loading Whisper model %r...", settings.whisper_model)
             _model = await asyncio.to_thread(
                 WhisperModel,
                 settings.whisper_model,

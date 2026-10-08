@@ -3,7 +3,7 @@ import "./DifficultyPicker.css";
 
 /**
  * Starting-difficulty picker for Setup. `value` is a level id (1-5) or null
- * for "Auto" — after the first question, difficulty is always the RL
+ * for "Auto" - after the first question, difficulty is always the RL
  * policy's call regardless of what's picked here, so this only sets where
  * the session begins.
  */

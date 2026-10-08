@@ -1,7 +1,7 @@
 """Identity verification endpoints for an interview session.
 
 Frames are read into memory, analysed, and dropped at the end of the request.
-Responses carry outcomes and counters only — never embeddings or similarity
+Responses carry outcomes and counters only - never embeddings or similarity
 scores.
 """
 
@@ -55,7 +55,7 @@ async def verify_identity(
 
     Matches against the resume photo, or enrolls the face when there isn't one.
     With `continue_unmatched`, a candidate whose resume photo has repeatedly
-    failed to match may proceed — recorded as an integrity event.
+    failed to match may proceed - recorded as an integrity event.
     """
     session = await _session_requiring_identity(db, session_id, current_user)
     state = session["identity"]
@@ -94,7 +94,7 @@ async def skip_identity(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    """Continue without verification — only permitted while face verification can't run."""
+    """Continue without verification - only permitted while face verification can't run."""
     session = await _session_requiring_identity(db, session_id, current_user)
     state = session["identity"]
     if state["gate"] != IdentityGate.pending.value:
@@ -106,7 +106,7 @@ async def skip_identity(
         await identity_service.skip_unavailable(db, session)
     except identity_service.EngineStillAvailable as exc:
         raise HTTPException(
-            status.HTTP_409_CONFLICT, "Face verification is working again — verify with your camera to continue."
+            status.HTTP_409_CONFLICT, "Face verification is working again - verify with your camera to continue."
         ) from exc
 
     return IdentityVerifyResult(

@@ -66,7 +66,7 @@ export default function AnswerRecorder({
           rows={7}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Answer as you would out loud — a few sentences is enough."
+          placeholder="Answer as you would out loud - a few sentences is enough."
           disabled={disabled}
         />
         <div className="answer-box__foot">
@@ -83,7 +83,7 @@ export default function AnswerRecorder({
           </button>
         </div>
         <p className="answer-box__hint">
-          Typed answers are scored on content only — pace, pauses and filler words need audio.
+          Typed answers are scored on content only - pace, pauses and filler words need audio.
         </p>
       </div>
     );
@@ -96,7 +96,7 @@ export default function AnswerRecorder({
           <div className="recorder__live">
             <span className="recorder__dot" aria-hidden="true" />
             <span className="recorder__time">{formatTime(recorder.seconds)}</span>
-            <span className="recorder__status">Listening…</span>
+            <span className="recorder__status">Listening...</span>
           </div>
 
           <div className="recorder__wave" ref={recorder.levelTargetRef} aria-hidden="true">
@@ -130,7 +130,7 @@ export default function AnswerRecorder({
             Start answering
           </button>
           <p className="recorder__hint">
-            Speak your answer out loud. ARIA scores what you say and how you say it — everything
+            Speak your answer out loud. ARIA scores what you say and how you say it - everything
             is transcribed on this machine.
           </p>
           {recorder.error && <p className="recorder__error">{recorder.error}</p>}

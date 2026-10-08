@@ -15,8 +15,8 @@ export const METHOD_REASONS = {
 
 /** Resume upload: what was found, phrased for the candidate. */
 export const PHOTO_MESSAGES = {
-  usable: "Profile photo found — you'll match it with your camera when the interview starts.",
-  not_found: "No profile photo found. That's fine — you'll verify once with your camera before the interview starts.",
+  usable: "Profile photo found - you'll match it with your camera when the interview starts.",
+  not_found: "No profile photo found. That's fine - you'll verify once with your camera before the interview starts.",
   unusable: "Your resume photo isn't usable for verification, so you'll verify once with your camera instead.",
   unavailable: "Your resume photo couldn't be checked right now, so you'll verify once with your camera instead.",
 };
@@ -30,10 +30,10 @@ export const PHOTO_REASONS = {
 
 /** Live guidance for a check that couldn't see a usable face. */
 export const HINT_MESSAGES = {
-  too_dark: "It's too dark to see your face — add some light.",
-  blurry: "The picture is blurry — hold still.",
+  too_dark: "It's too dark to see your face - add some light.",
+  blurry: "The picture is blurry - hold still.",
   too_small: "Move a little closer to the camera.",
-  camera_off: "Your camera is off — turn it back on for identity checks.",
+  camera_off: "Your camera is off - turn it back on for identity checks.",
   unreadable_frame: "The camera picture couldn't be read.",
 };
 

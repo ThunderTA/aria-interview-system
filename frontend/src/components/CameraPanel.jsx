@@ -32,7 +32,7 @@ function identityLine(identity, lastCheck, paused) {
 /**
  * Webcam preview shown alongside the question.
  *
- * Mirrored, because an un-mirrored view of yourself is disconcerting — this is
+ * Mirrored, because an un-mirrored view of yourself is disconcerting - this is
  * what every video-call app does, and it only affects the preview, not the
  * frames sent for analysis.
  */
@@ -110,12 +110,12 @@ export default function CameraPanel({
       <p className="interview-panel__hint">
         {identityRequired
           ? camera.enabled
-            ? `Your identity is re-checked every ${identity.check_interval_seconds} seconds, and where you're looking is read from the camera a few times a minute. Frames are analysed and discarded — nothing is recorded.`
+            ? `Your identity is re-checked every ${identity.check_interval_seconds} seconds, and where you're looking is read from the camera a few times a minute. Frames are analysed and discarded - nothing is recorded.`
             : (CAMERA_REQUIRED_MESSAGES[camera.errorCode] ?? "Your camera is required for identity checks.") +
               " While it's off, checks are recorded as face not detected."
           : (camera.error ??
             (camera.enabled
-              ? "Eye contact, expression and posture are measured from frames sampled while you answer. Nothing is recorded or uploaded — frames are analysed and discarded."
+              ? "Eye contact, expression and posture are measured from frames sampled while you answer. Nothing is recorded or uploaded - frames are analysed and discarded."
               : "Optional. Without it you'll still be scored on content and delivery."))}
       </p>
     </div>

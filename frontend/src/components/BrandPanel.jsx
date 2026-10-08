@@ -49,7 +49,7 @@ export default function BrandPanel() {
         </h1>
         <p className="brand-panel__sub">
           Role-specific mock interviews, scored in real time on what you said and how you said
-          it — so you walk into the real one ready.
+          it - so you walk into the real one ready.
         </p>
 
         <ul className="brand-panel__features">

@@ -97,7 +97,7 @@ async def upload_resume(
         "uploaded_at": datetime.now(timezone.utc),
     }
 
-    # One current resume per user — a new upload replaces the previous one.
+    # One current resume per user - a new upload replaces the previous one.
     result = await db.resumes.find_one_and_replace(
         {"user_id": user_id}, doc, upsert=True, return_document=ReturnDocument.AFTER
     )

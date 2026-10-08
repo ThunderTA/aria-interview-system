@@ -18,7 +18,7 @@
   padding: var(--space-6);
 }
 
-/* Identity warning: noticeable, deliberately not alarming — a single signal
+/* Identity warning: noticeable, deliberately not alarming - a single signal
    that something is off, not an accusation mid-answer. */
 .identity-warning {
   display: flex;
@@ -355,7 +355,7 @@
 }
 
 .dots::after {
-  content: "…";
+  content: "...";
   animation: dots-fade 1.4s ease-in-out infinite;
 }
 

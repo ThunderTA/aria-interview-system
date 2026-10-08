@@ -45,7 +45,7 @@ class IdentityStatus(str, Enum):
 
 
 class ResumePhotoOut(BaseModel):
-    """What the candidate is told about their resume photo — never the face itself."""
+    """What the candidate is told about their resume photo - never the face itself."""
 
     status: Literal["usable", "not_found", "unusable", "unavailable"]
     reason: str | None = None

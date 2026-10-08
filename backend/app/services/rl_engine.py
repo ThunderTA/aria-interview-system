@@ -11,7 +11,7 @@ State  : (performance_band, difficulty_level)
          so the table stays small enough to fill with real session data.
 State  : 3 bands x 5 difficulty levels = 15 states
 Action : -1 (easier), 0 (same), +1 (harder)
-Reward : highest when the candidate is challenged but coping — a score near
+Reward : highest when the candidate is challenged but coping - a score near
          the target band. Being stuck at 20% or coasting at 100% both score
          poorly, which is what pushes the policy toward the right level.
 
@@ -91,7 +91,7 @@ def select_next_difficulty(
     """Pick the next question's difficulty (1-5).
 
     Uses the learned Q-values for this state when they exist, else the
-    rule-based policy. Greedy selection — exploration happens through the
+    rule-based policy. Greedy selection - exploration happens through the
     natural variation between candidates rather than deliberate random moves,
     since a practice interview is a poor place to serve a deliberately wrong
     question.

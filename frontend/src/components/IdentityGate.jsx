@@ -64,7 +64,7 @@ export default function IdentityGate({ sessionId, identity, camera, onIdentityCh
         finish(outcome);
       } else {
         setResult(outcome);
-        // Still pending, so the gate stays up — this just keeps attempt counts current.
+        // Still pending, so the gate stays up - this just keeps attempt counts current.
         onIdentityChange(outcome.identity);
       }
     } catch (err) {
@@ -106,7 +106,7 @@ export default function IdentityGate({ sessionId, identity, camera, onIdentityCh
 
         <ul className="identity-gate__tips">
           <li>Face the camera with your whole face in view</li>
-          <li>Use even light — avoid a bright window behind you</li>
+          <li>Use even light - avoid a bright window behind you</li>
           <li>Make sure you're the only person in frame</li>
         </ul>
 
@@ -132,7 +132,7 @@ export default function IdentityGate({ sessionId, identity, camera, onIdentityCh
               <p>Camera off</p>
             </div>
           )}
-          {busy && camera.enabled && <span className="identity-gate__status">Checking…</span>}
+          {busy && camera.enabled && <span className="identity-gate__status">Checking...</span>}
           {passed && (
             <span className="identity-gate__status identity-gate__status--passed">
               <span className="identity-gate__tick" aria-hidden="true" />
@@ -154,7 +154,7 @@ export default function IdentityGate({ sessionId, identity, camera, onIdentityCh
             <Notice title={FAILURE_TITLES[result.outcome] ?? "Verification didn't pass."}>
               {result.message}
               {result.identity.can_continue_unmatched &&
-                " If your resume photo is old or low quality, you can continue — the mismatch will be noted in your report."}
+                " If your resume photo is old or low quality, you can continue - the mismatch will be noted in your report."}
             </Notice>
           )}
         </div>
@@ -172,7 +172,7 @@ export default function IdentityGate({ sessionId, identity, camera, onIdentityCh
               disabled={busy || passed}
             >
               {busy
-                ? "Checking…"
+                ? "Checking..."
                 : result
                   ? "Try again"
                   : usesResumePhoto

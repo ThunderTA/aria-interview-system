@@ -7,7 +7,7 @@ import "./AppHeader.css";
  * `onNavigateAttempt`, if provided, intercepts every navigation this header
  * can trigger (logo-home, back link, logout) and is handed a callback that
  * performs the real navigation. Pages with something at stake if you leave
- * mid-flow — Interview, mid-session — pass one that shows a confirmation and
+ * mid-flow - Interview, mid-session - pass one that shows a confirmation and
  * only invokes the callback once the candidate has actually agreed to leave;
  * everywhere else, omitting the prop keeps navigation immediate as before.
  */

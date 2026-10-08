@@ -14,7 +14,7 @@
   padding: var(--space-6) var(--space-5) var(--space-8);
 }
 
-/* Page header — a real banner, not a bento tile, so the page reads as
+/* Page header - a real banner, not a bento tile, so the page reads as
    having a header section distinct from its content grid. */
 .dashboard-header {
   display: flex;

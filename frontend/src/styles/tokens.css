@@ -12,13 +12,13 @@
   --text-secondary: #4b5563;
   --text-tertiary: #6b7280;
 
-  /* Brand accents — amber "spotlight" + teal "signal", not the default AI-purple.
+  /* Brand accents - amber "spotlight" + teal "signal", not the default AI-purple.
      --accent/--signal stay at full saturation for fills (buttons, gradients,
      translucent badge backgrounds): a large colored surface reads fine at
      these values. Neither passes body-text contrast against a light page
      (~1.8:1 for amber on white), so --accent-text/--signal-text are the
      darkened variants for anything rendering as foreground text or a small
-     icon — anywhere a `color:` (not `background`/`border`) uses the brand
+     icon - anywhere a `color:` (not `background`/`border`) uses the brand
      color. */
   --accent: #ffb020;
   --accent-strong: #ffc659;

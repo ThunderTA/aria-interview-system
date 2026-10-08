@@ -3,7 +3,7 @@ import "./ScoringProgress.css";
 
 // Mirrors what the server actually does: transcribe (spoken answers only),
 // grade against the rubric, then pick the next question. The timings are
-// approximate — stages advance on a timer, then the last one holds until the
+// approximate - stages advance on a timer, then the last one holds until the
 // response lands, so a slow model never makes the UI claim it has finished.
 const TEXT_STAGES = [
   { label: "Reading your answer", after: 0 },
@@ -34,7 +34,7 @@ export default function ScoringProgress({ spoken = false }) {
     <div className="scoring" role="status" aria-live="polite">
       <div className="scoring__head">
         <span className="scoring__spinner" aria-hidden="true" />
-        <p className="scoring__title">{STAGES[activeIndex].label}…</p>
+        <p className="scoring__title">{STAGES[activeIndex].label}...</p>
         <span className="scoring__elapsed">{Math.floor(elapsed / 1000)}s</span>
       </div>
 
@@ -53,8 +53,8 @@ export default function ScoringProgress({ spoken = false }) {
 
       <p className="scoring__hint">
         {spoken
-          ? "Transcription and scoring both run on this machine — your recording is never uploaded, and it's discarded once transcribed."
-          : "Scoring runs on a local model, so this takes around half a minute — no data leaves your machine."}
+          ? "Transcription and scoring both run on this machine - your recording is never uploaded, and it's discarded once transcribed."
+          : "Scoring runs on a local model, so this takes around half a minute - no data leaves your machine."}
       </p>
     </div>
   );

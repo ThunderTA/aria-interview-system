@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # Speech-to-text. Runs locally via faster-whisper; no API key, no upload.
     # "small" over "base" because transcription errors feed straight into the
-    # LLM's score — a misheard technical term costs the candidate real marks.
+    # LLM's score - a misheard technical term costs the candidate real marks.
     whisper_model: str = "small"
     whisper_compute_type: str = "int8"
 
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     # how checks become a verdict. Similarities are cosine, on SFace embeddings.
     identity_verification_enabled: bool = True
     # Fernet key for embeddings at rest. Empty means "derive one from
-    # jwt_secret" — fine locally, but set a dedicated key anywhere shared so
+    # jwt_secret" - fine locally, but set a dedicated key anywhere shared so
     # rotating the JWT secret doesn't also invalidate stored references.
     face_embedding_key: str = ""
     identity_detection_score: float = 0.80
@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     conversation_max_follow_ups: int = 2
     conversation_max_clarifications: int = 2
 
-    # Live attention readout — where the candidate is looking, sampled from the
+    # Live attention readout - where the candidate is looking, sampled from the
     # camera while the interview runs. The gaze angles themselves live in
     # cv_analysis.py, next to the geometry they describe.
     attention_checks_enabled: bool = True

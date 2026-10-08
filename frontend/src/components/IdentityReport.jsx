@@ -34,7 +34,7 @@ function eventMeta(event) {
   if (event.type === "VERIFICATION_UNAVAILABLE") return formatTime(event.started_at);
   const range =
     event.ended_at && formatTime(event.ended_at) !== formatTime(event.started_at)
-      ? `${formatTime(event.started_at)}–${formatTime(event.ended_at)}`
+      ? `${formatTime(event.started_at)}-${formatTime(event.ended_at)}`
       : formatTime(event.started_at);
   return `${range} · ${event.checks} checks in a row`;
 }

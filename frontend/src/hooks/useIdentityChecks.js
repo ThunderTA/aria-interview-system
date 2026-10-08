@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { checkIdentity } from "../api/sessions";
 
 // Consecutive failed requests (network, server) before checks pause. These
-// never count against the candidate — only completed checks do.
+// never count against the candidate - only completed checks do.
 const MAX_REQUEST_FAILURES = 3;
 
 /**

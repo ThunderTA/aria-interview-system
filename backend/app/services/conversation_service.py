@@ -3,7 +3,7 @@
 A session in conversation mode moves through four phases:
 
   intro                greeting; the candidate introduces themselves
-  questioning          each main question is a thread — the candidate answers,
+  questioning          each main question is a thread - the candidate answers,
                        and the interviewer follows up (at most
                        conversation_max_follow_ups times), clarifies, or moves on
   candidate_questions  "is there anything you'd like to ask me?"

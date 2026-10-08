@@ -2,7 +2,7 @@
 
 Targets a local Ollama server by default (no API key, runs offline), but only
 depends on the /api/chat contract, so swapping in another provider means
-rewriting this module alone — the judging logic in llm_judge.py is unaffected.
+rewriting this module alone - the judging logic in llm_judge.py is unaffected.
 
 Uses Ollama's structured-output support: passing a JSON Schema as `format`
 constrains decoding so responses parse reliably instead of needing the model to
@@ -26,13 +26,12 @@ class LLMUnavailableError(RuntimeError):
 
 
 class _PriorityGate:
-    """One request at a time, with a live conversation ahead of background work.
+    """One request at a time, with interactive work ahead of background work.
 
-    Ollama generates one response at a time by default, so a rubric-scoring
-    request queued just before the interviewer's next line would leave the
-    candidate waiting in silence. Serialising requests here lets an
-    interactive one go next instead of queueing behind background work. A
-    request that is already running is never interrupted.
+    Ollama generates one response at a time, so a rubric-scoring request queued
+    just before the interviewer's next line would delay it. Serialising here
+    lets an interactive request go next instead. A request already running is
+    never interrupted.
     """
 
     def __init__(self) -> None:

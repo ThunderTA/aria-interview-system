@@ -54,7 +54,7 @@ async def login(payload: UserLogin, db: AsyncIOMotorDatabase = Depends(get_db)):
 async def refresh(payload_in: RefreshRequest, db: AsyncIOMotorDatabase = Depends(get_db)):
     """Exchange a refresh token for a new token pair.
 
-    The token comes in the request body, not a query parameter — query strings
+    The token comes in the request body, not a query parameter - query strings
     end up in server and proxy access logs, which is no place for a credential.
     """
     payload = decode_token(payload_in.refresh_token)
